@@ -7,12 +7,7 @@
     <div>
         <Row type="flex" class="height-100" :gutter="16">
             <div class="margin-left-10">
-                <Select v-model="selectBU" @on-change="getDatabaseListNet(selectBU)" style="width:100px">
-                    <Option :value="1" :key="1">NBU</Option>
-                    <Option :value="2" :key="2">TBU</Option>
-                    <Option :value="3" :key="3">IBU</Option>
-                </Select>
-                <i-button type="success" @click="addDatabase" class="margin-left-10" >新建数据库</i-button>
+                <i-button type="success" @click="addDatabase">新建数据库</i-button>
             </div>
         </Row>
         <Row class="margin-top-10">
@@ -29,11 +24,6 @@
                 <Input v-model="databaseDataModel.username" placeholder="用户名" style="width: 400px" class="margin-bottom-10" />
                 <Input v-model="databaseDataModel.password" placeholder="密码" style="width: 400px" class="margin-bottom-10" />
                 <Input v-model="databaseDataModel.schema_name" placeholder="实例名(schema)" style="width: 400px" class="margin-bottom-10" />
-                <Select v-model="databaseDataModel.business_unit" style="width:400px">
-                    <Option :value="1" :key="1">NBU</Option>
-                    <Option :value="2" :key="2">TBU</Option>
-                    <Option :value="3" :key="3">IBU</Option>
-                </Select>
             </Row>
             <Row slot="footer">
                 <Button type="text" @click="cancelAddDatabase">取消</Button>
@@ -52,7 +42,6 @@ export default {
     name: 'cooperation-db',
     data () {
         return {
-            selectBU: 2,
             showAddDB: false,
             listColumn: [
                 {
@@ -86,7 +75,7 @@ export default {
                                 },
                                 on: {
                                     click: () => {
-                                        this.isSynchronizeDatabaseNet(params.row.id, 1)
+                                        this.isSynchronizeDatabaseNet(params.row.id)
                                     }
                                 }
                             }, '同步'),
@@ -114,7 +103,7 @@ export default {
                                 },
                                 on: {
                                     click: () => {
-                                        this.isSynchronizeDatabaseNet(params.row.id, 2)                                      
+                                        this.$router.push({path:"/cooperation/cooperation-dbdoc-list",query:{id:params.row.id}})
                                     }
                                 }
                             }, '查看文档'),
@@ -157,8 +146,8 @@ export default {
                 username: "",
                 password: "",
                 schema_name: "",
-                business_unit: 2,
                 // todo 从当前用户的数据读，先写死了
+                business_unit: 2,
                 product_unit: 1,
             },
         }
@@ -173,15 +162,15 @@ export default {
                 username: "",
                 password: "",
                 schema_name: "",
-                business_unit: 2,
                 // todo 从当前用户的数据读，先写死了
+                business_unit: 2,
                 product_unit: 1,
             }
         },
         getData () {
-            this.getDatabaseListNet(this.selectBU)
+            this.getDatabaseListNet()
         },
-        getDatabaseListNet(id) {
+        getDatabaseListNet(id = 2) {
             // todo id写死了
             return axios.get("/v1/database/getDatabaseList",
                 {"params":{"id": id}}
@@ -225,7 +214,6 @@ export default {
                 ).then((res)=>{
                     if(res.data.success){
                         this.showAddDB = false
-                        this.selectBU = this.databaseDataModel.business_unit
                         this.$Message.success("新建数据库成功")
                         this.initDatabaseDataModel()
                         this.getData()
@@ -248,27 +236,23 @@ export default {
                 }
             })
         },
-        isSynchronizeDatabaseNet(index, type) {
+        isSynchronizeDatabaseNet(index) {
             axios.get("/v1/database/isInitSynchronize",
                 {"params":{"id": index}}
             ).then((res)=>{
                 if(res.data.success){
                     let tableCount = res.data.message[0]["tableCount"]
-                    if(tableCount == 0 && type == 1) {
+                    if(tableCount == 0) {
                         this.initSynchronizeDatabaseNet(index)
-                    } else if(tableCount > 0 && type == 1) {
+                    } else {
                         this.synchronizeDatabaseNet(index)
-                    } else if(tableCount > 0 && type ==2) {
-                        this.showDoc(index)
-                    } else if(tableCount == 0 && type ==2) {
-                        this.$Message.error("还未同步，请先同步！")
                     }
                 }else{
                     this.$Message.error("初始化数据库数据失败")
                 }
             })
         },
-        initSynchronizeDatabaseNet(index) {
+        initSynchronizeDatabaseNet(index){
             axios.post("/v1/database/initSynchronizeDatabase",
             {"id":index}
             ).then((res)=>{
@@ -279,7 +263,7 @@ export default {
                 }
             })
         },
-        synchronizeDatabaseNet(index) {
+        synchronizeDatabaseNet(index){
             axios.post("/v1/database/synchronizeDatabase",
             {"id":index}
             ).then((res)=>{
@@ -290,17 +274,9 @@ export default {
                 }
             })
         },
-        showDoc(index) {
-            this.$router.push({path:"/cooperation/cooperation-dbdoc-list",query:{id:index}})
-        },
     },
-    // created () {
-    //     this.getData()
-    // },
-    beforeRouteEnter(to, from, next) {
-        next(vm => {
-            vm.getData()
-        })
-    },
+    created () {
+        this.getData()
+    }
 }
 </script>

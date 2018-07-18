@@ -26,54 +26,42 @@ class TestCaseService(object):
         #这里需要事务保证一致性
         if "status" not in args:
             args.setdefault("status",None)
-        if "remarks" not in args:
-            args.setdefault("remarks",None)
+
         caseArgs = copy.deepcopy(args)
         projectId = int(caseArgs["projectId"])
         caseArgs.pop("projectId")
         caseArgs.setdefault("projectId",projectId)
+        applicationId = int(caseArgs["applicationId"])
+        caseArgs.pop("applicationId")
+        caseArgs.setdefault("applicationId", applicationId)
         caseArgs.pop("itemsSteps")
+        data_1 = self.testCaseDaoInterface.addTestCase(caseArgs)
         db = Connection(autocommit=False)
-        test_case_sql="""
-        insert into testcase (name,create_userid,create_username,update_userid,update_username,
-        case_describe,projectid,groupid,gmt_create) values (%(name)s,%(userId)s,%(userName)s,
-        %(userId)s,%(userName)s,%(desc)s,%(projectId)s,%(groupId)s,now())
-        """
-        db.write(test_case_sql,caseArgs)
-        caseId = db.read("SELECT LAST_INSERT_ID() AS id",{})
+
+        caseId = self.testCaseDaoInterface.newInsertTestCase()
         logger.error("caseId={0}".format(caseId))
-        case_content_sql="""
-        insert into casecontent (step_name,caseid,step,interfaceid,url,method,format,request_params,
-        type,sqlcontent,response_type) values (%(name)s,%(caseId)s,%(step)s,%(interfaceId)s,%(url)s,%(method)s,
-        %(format)s,%(request_params)s,%(type)s,%(sqlcontent)s,%(response_type)s)"""
+
         for stepItem in args["itemsSteps"]:
             if stepItem["statusStep"] ==0:
                 continue
             stepJson={}
-            stepJson.setdefault("name",stepItem["value"])
+            stepJson.setdefault("step_name",stepItem["value"])
             stepJson.setdefault("caseId", caseId[0]["id"])
-            stepJson.setdefault("step", stepItem["indexStep"])
-            stepJson.setdefault("interfaceId", None)
-            stepJson.setdefault("url", stepItem["path"])
+            stepJson.setdefault("execute_step", stepItem["indexStep"])
+            stepJson.setdefault("host", stepItem["host"])
+            stepJson.setdefault("path", stepItem["path"])
             stepJson.setdefault("method", stepItem["method"])
-            stepJson.setdefault("format", stepItem["format"])
-            stepJson.setdefault("response_type", stepItem["response_type"])
+            stepJson.setdefault("content_type", stepItem["content_type"])
+            stepJson.setdefault("headers",stepItem["headers"])
             if stepItem["params"] =="":
                 stepJson.setdefault("request_params", None)
             else:
                 stepJson.setdefault("request_params", stepItem["params"])
-            stepJson.setdefault("type", stepItem["type"])
-            if stepItem["sql"]=="":
-                stepJson.setdefault("sqlcontent", None)
-            else:
-                stepJson.setdefault("sqlcontent", stepItem["sql"])
-            db.write(case_content_sql,stepJson)
-            contentId = db.read("SELECT LAST_INSERT_ID() AS id",{})
+
+            data_2=self.testCaseDaoInterface.addTestCaseContent(stepJson)
+            contentId = self.testCaseDaoInterface.newInsertTestCase()
             logger.error("contentId={0}".format(contentId))
-            assert_sql="""
-            insert into assert (casecontentid,actual,expect,assert_type) values (%(contentId)s,
-            %(actual)s,%(expect)s,%(type)s)
-            """
+
             assertDatas=[]
             for assertItem in stepItem["itemsAsserts"]:
                 if assertItem["statusAssert"] ==0:
@@ -84,9 +72,7 @@ class TestCaseService(object):
                 assertJSON.setdefault("expect",assertItem["expect"])
                 assertJSON.setdefault("type",assertItem["rules"])
                 assertDatas.append(assertJSON)
-            db.write(assert_sql,assertDatas,True)
-        db.commit()
-        db.close()
+            data_3 = self.testCaseDaoInterface.addTestCaseAssert(assertDatas)
         dataResult.setSuccess(True)
         dataResult.setMessage(caseId)
         return dataResult
@@ -116,21 +102,19 @@ class TestCaseService(object):
                 if 'id' not in data:
                     data["desc"]= item["case_describe"]
                     data["name"] = item["name"]
-                    data["groupId"] = item["groupid"]
-                    data["projectId"] = item["projectid"]
-                    data["status"] = item["status"]
+                    data["applicationId"] = item["application_id"]
+                    data["projectId"] = item["project_id"]
+                    data["status"] = item["case_status"]
                 if item["contentId"] not in tmpSteps:
                     tmpStepJson = {}
                     tmpSteps[item["contentId"]]=tmpStepJson
-                    tmpStepJson["type"]= item["type"]
                     tmpStepJson["method"] = item["method"]
-                    tmpStepJson["path"] = item["url"]
-                    tmpStepJson["header"] = ""
-                    tmpStepJson["params"] = item["request_params"]
-                    tmpStepJson["format"] =item["format"]
-                    tmpStepJson["sql"] =item["sqlcontent"]
-                    tmpStepJson["response_type"] = item["response_type"]
-                    tmpStepJson["indexStep"] = item["step"]
+                    tmpStepJson["host"] = item["ip_url"]
+                    tmpStepJson["path"] = item["webapi_path"]
+                    tmpStepJson["header"] = item["headers"]
+                    tmpStepJson["params"] = item["requests_params"]
+                    tmpStepJson["content_type"] =item["content_type"]
+                    tmpStepJson["indexStep"] = item["execute_step"]
                     tmpStepJson["statusStep"] = 1
                     tmpStepJson["value"] = item["step_name"]
                 if 'itemsAsserts' not in tmpSteps[item["contentId"]]:
@@ -169,3 +153,10 @@ class TestCaseService(object):
         args.setdefault("applicationId",applicationId)
         args.setdefault("projectId", projectId)
         return self.testCaseDaoInterface.getCaseList(args)
+
+    def searchCaseByName(self,searchValue,applicationId,projectId):
+        args={}
+        args.setdefault("searchValue",searchValue)
+        args.setdefault("applicationId", applicationId)
+        args.setdefault("projectId", projectId)
+        return self.testCaseDaoInterface.searchCaseByName(args)

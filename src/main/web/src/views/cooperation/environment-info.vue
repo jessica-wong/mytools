@@ -13,25 +13,31 @@
                             <Input v-model="formValidate.name" placeholder="Enter environment name"></Input>
                         </FormItem>
                         <FormItem label="前置URL" prop="url">
-                            <Input v-model="formValidate.url" placeholder="Enter url"></Input>
-                        </FormItem>
-                        <FormItem label="数据模板" prop="template">
-                            <Input v-model="formValidate.template" type="textarea" :autosize="{minRows: 2,maxRows: 100}" placeholder="Data template..."></Input>
+                            <Input v-model="formValidate.url" placeholder="Example http://www.baidu.com"></Input>
                         </FormItem>
                         <FormItem label="DB名称" prop="dbname">
                             <Input v-model="formValidate.dbname" placeholder="DataBase name..."></Input>
                         </FormItem>
-                        <FormItem label="HostName" prop="dbhostname">
+                        <FormItem label="DBHostName" prop="dbhostname">
                             <Input v-model="formValidate.dbhostname" placeholder="DataBase hostName..."></Input>
                         </FormItem>
-                        <FormItem label="Port" prop="dbport">
+                        <FormItem label="DBPort" prop="dbport">
                             <Input v-model="formValidate.dbport" placeholder="DataBase port..."></Input>
                         </FormItem>
-                        <FormItem label="UserName" prop="dbusername">
+                        <FormItem label="DBUserName" prop="dbusername">
                             <Input v-model="formValidate.dbusername" placeholder="DataBase userName..."></Input>
                         </FormItem>
-                        <FormItem label="PassWord" prop="dbpasswd">
+                        <FormItem label="DBPassWord" prop="dbpasswd">
                             <Input v-model="formValidate.dbpasswd" placeholder="DataBase passWord..."></Input>
+                        </FormItem>
+                        <FormItem label="全局变量" prop="template">
+                            <Input v-model="formValidate.template" type="textarea" :autosize="{minRows: 2,maxRows: 100}" placeholder="请以json格式保存设置的全局变量：{key:value}"></Input>
+                        </FormItem>
+                        <FormItem label="请求头管理" prop="headers">
+                            <Input v-model="formValidate.headers" type="textarea" :autosize="{minRows: 2,maxRows: 100}" placeholder="请以json格式保存设置headers信息：{key:value}"></Input>
+                        </FormItem>
+                        <FormItem label="登录信息" prop="authInfo">
+                            <Input v-model="formValidate.authInfo" type="textarea" :autosize="{minRows: 2,maxRows: 100}" placeholder="若执行用例前需通过登录获取用户信息，请以json格式保存登录用户信息，如{key:value}"></Input>
                         </FormItem>
                         <FormItem>
                             <Button type="primary" @click="handleSubmit('formValidate')">Submit</Button>
@@ -40,7 +46,7 @@
                     </Form>
                 </Card>
             </Col>
-            <Col span="6" class="padding-left-10">
+            <!--<Col span="6" class="padding-left-10">
                 <div class="margin-top-10">
                     <Card>
                         <p slot="title">
@@ -49,7 +55,7 @@
                         </p>
                     </Card>
                 </div>
-            </Col>
+            </Col>-->
         </Row>
     </div>
 </template>
@@ -69,7 +75,9 @@ export default {
                     dbport: '',
                     dbusername: '',
                     dbpasswd: '',
-                    envId:''
+                    envId:'',
+                    headers:'',
+                    authInfo:'',
                 },
             ruleValidate: {
                 name: [
@@ -106,15 +114,17 @@ export default {
                 console.log(res);
                 if(res.data.success){
                     const envInfo = res.data.message[0]
-                    this.formValidate.name= envInfo["name"]
+                    this.formValidate.name= envInfo["env_name"]
                     this.formValidate.url= envInfo["url"]
-                    this.formValidate.template= envInfo["datatemplate"]
-                    this.formValidate.dbname= envInfo["dbname"]
-                    this.formValidate.dbhostname= envInfo["dbhostname"]
-                    this.formValidate.dbport= envInfo["dbport"]
-                    this.formValidate.dbusername= envInfo["dbusername"]
-                    this.formValidate.dbpasswd= envInfo["dbpasswd"]
+                    this.formValidate.template= envInfo["data_template"]
+                    this.formValidate.dbname= envInfo["db_name"]
+                    this.formValidate.dbhostname= envInfo["db_hostname"]
+                    this.formValidate.dbport= envInfo["db_port"]
+                    this.formValidate.dbusername= envInfo["db_username"]
+                    this.formValidate.dbpasswd= envInfo["db_passwd"]
                     this.formValidate.envId= envInfo["id"]
+                    this.formValidate.authInfo=envInfo["authInfo"]
+                    this.formValidate.headers=envInfo["headers"]
 
                 }else{
                     this.$Message.error("获取环境详情失败")

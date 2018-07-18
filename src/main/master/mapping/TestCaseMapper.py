@@ -1,22 +1,5 @@
 # -*- coding: utf-8 -*-
 
-#CREATE TABLE `testcase` (
-#`id` int(11) NOT NULL auto_increment,
-#`name` varchar(255) NOT NULL,
-#`create_userid` int(11) NOT NULL,
-#`create_username` varchar(255) NOT NULL,
-#`update_userid` int(11) NOT NULL,
-#`update_username` varchar(255) NOT NULL,
-#`describe` varchar(255) NOT NULL,
-#`status` tinyint(4) default 0 COMMENT '0: enable 1: disable',
-#`remarks` varchar(255) DEFAULT NULL,
-#`projectid` int(11) NOT NULL,
-#`groupid` int(11) NOT NULL,
-#`envid` int(11) DEFAULT NULL,
-#`gmt_create` datetime DEFAULT NULL,
-#`gmt_modify` timestamp default CURRENT_TIMESTAMP on update CURRENT_TIMESTAMP,
-#PRIMARY KEY(`id`)
-#) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8;
 
 class TestCaseSQLMapper:
 
@@ -32,15 +15,26 @@ class TestCaseSQLMapper:
     def __setSQL(self):
         #WRITE SQL FOR API
         addTestCaseSQL="""
-        insert into testcase (name,create_userid,case_describe,status,remarks,projectid,groupid,envid,gmt_create) 
-        values(%(name)s,%(userId)s,%(describe)s,%(status)s,%(remarks)s,%(projectId)s,%(groupId)s,%(envId)s,now())
+        insert into test_case (name,create_userid,case_describe,case_status,project_id,application_id,group_id,gmt_create) 
+        values(%(name)s,%(userId)s,%(describe)s,%(status)s,%(projectId)s,%(applicationId)s,%(groupId)s,now())
+        """
+        newInsertTestCaseSQL = """
+        SELECT LAST_INSERT_ID() AS id
+        """
+        addTestCaseContentSQL="""
+        insert into case_content (case_id,ip_url,webapi_path,method,content_type,request_params,headers,execute_step,step_name) 
+        values (%(caseId)s,%(host)s,%(path)s,%(method)s,%(content_type)s,%(params)s,%(headers)s,%(execute_step)s,%(step_name)s)
+        """
+        addTestCaseAssertSQL="""
+        insert into assert (casecontentid,actual,expect,assert_type) values (%(contentId)s,
+        %(actual)s,%(expect)s,%(type)s)
         """
         deleteTestCaseSQL="""
-        delete from testcase where id = %(caseId)s
+        delete from test_case where id = %(caseId)s
         """
         updateTestCaseSQL="""
-        update testcase set name=%(name)s,update_userid=%(userId)s,case_describe=%(describe)s,status=%(status)s,
-        remarks=%(remarks)s,envid=%(envid)s where id=%(caseId)s
+        update test_case set name=%(name)s,update_userid=%(userId)s,case_describe=%(describe)s,case_status=%(status)s
+        where id=%(caseId)s
         """
         getCaseInfosByConditionSQL="""
         select * from testcase where projectid = %(projectId)s and groupid= %(groupId)s 
@@ -53,10 +47,10 @@ class TestCaseSQLMapper:
         select * from testcase where id in (%(caseIds)s) where name="init" limit 1
         """
         getCaseDetailInfoByIdSQL="""
-        select testcase.*,casecontent.id as contentId,casecontent.step_name,casecontent.step,casecontent.interfaceid,casecontent.url,casecontent.method,
-        casecontent.format,casecontent.request_params,casecontent.type,casecontent.sqlcontent,casecontent.response_type,
-        assert.actual,assert.expect,assert.assert_type,assert.casecontentid from testcase left join casecontent on testcase.id = casecontent.caseid 
-        left join assert on assert.casecontentid = casecontent.id where testcase.id = %(caseId)s
+        select test_case.*,case_content.id as contentId,case_content.step_name,case_content.execute_step,case_content.webapi_path,case_content.ip_url,case_content.method,
+        case_content.content_type,case_content.requests_params,case_content.headers,assert.actual,assert.expect,assert.assert_type,assert.casecontentid 
+        from test_case left join case_content on test_case.id = case_content.case_id 
+        left join assert on assert.casecontentid = case_content.id where test_case.id = %(caseId)s
         """
         getTestCaseCountSQL="""
         select count(1) as testCaseCount from testcase
@@ -64,9 +58,16 @@ class TestCaseSQLMapper:
         getCaseListSQL="""
         select * from test_case where application_id=%(applicationId)s and project_id=%(projectId)s
         """
+        searchCaseByNameSQL="""
+        select * from test_case where application_id=%(applicationId)s and project_id=%(projectId)s and name like %(searchValue)s
+        """
+
 
         #SET SQL FOR DAO
         self.data.setdefault("addTestCase",addTestCaseSQL)
+        self.data.setdefault("newInsertTestCase", newInsertTestCaseSQL)
+        self.data.setdefault("addTestCaseContent", addTestCaseContentSQL)
+        self.data.setdefault("addTestCaseAssert", addTestCaseAssertSQL)
         self.data.setdefault("deleteTestCase",deleteTestCaseSQL)
         self.data.setdefault("updateTestCase",updateTestCaseSQL)
         self.data.setdefault("getCaseInfosByCondition", getCaseInfosByConditionSQL)
@@ -75,3 +76,4 @@ class TestCaseSQLMapper:
         self.data.setdefault("getCaseDetailInfoById",getCaseDetailInfoByIdSQL)
         self.data.setdefault("getTestCaseCount", getTestCaseCountSQL)
         self.data.setdefault("getCaseList", getCaseListSQL)
+        self.data.setdefault("searchCaseByName",searchCaseByNameSQL)

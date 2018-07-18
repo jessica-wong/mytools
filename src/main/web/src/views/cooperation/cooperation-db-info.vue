@@ -30,28 +30,18 @@
                                 <label v-if="editIsHide">{{databaseDataModel.username}}</label>
                                 <Input v-if="!editIsHide" v-model="databaseDataModel.username" style="width: 300px" ></Input>
                             </p>
+                            <p class="margin-bottom-10">密码：
+                                <label v-if="editIsHide">{{databaseDataModel.password}}</label>
+                                <Input v-if="!editIsHide" v-model="databaseDataModel.password" style="width: 300px" ></Input>
+                            </p>
                             <p class="margin-bottom-10">实例名：
                                 <label v-if="editIsHide">{{databaseDataModel.schema_name}}</label>
                                 <Input v-if="!editIsHide" v-model="databaseDataModel.schema_name" style="width: 300px" ></Input>
                             </p>
-                            <p class="margin-bottom-10">BU：
-                                <Select  v-if="editIsHide" disabled v-model="databaseDataModel.business_unit" style="width:300px">
-                                        <Option :value="1" :key="1">NBU</Option>
-                                    <Option :value="2" :key="2">TBU</Option>
-                                    <Option :value="3" :key="3">IBU</Option>
-                                </Select>
-                                <Select  v-if="!editIsHide" v-model="databaseDataModel.business_unit" style="width:300px">
-                                    <Option :value="1" :key="1">NBU</Option>
-                                    <Option :value="2" :key="2">TBU</Option>
-                                    <Option :value="3" :key="3">IBU</Option>
-                                </Select>
-                            </p>
                             <p style="text-align:right">
-                                <i-button v-if="editIsHide" type="info" @click="addPwdShow" size="small" class="margin-left-10">查看/修改密码</i-button>        
-                                <i-button v-if="!editIsHide" type="primary" @click="editDatabaseByIdNet" size="small">确定</i-button>
-                                <i-button v-if="editIsHide" type="info" @click="changeEditShow" class="margin-left-10" size="small">编辑</i-button>
+                                <i-button v-if="editIsHide" type="info" @click="changeEditShow" style="width:100px" size="small">编辑</i-button>
+                                <i-button v-if="!editIsHide" type="primary" @click="editDatabaseByIdNet" style="width:100px" size="small">确定</i-button>
                             </p>
-
                         </Card>
                         <Card class="margin-right-10 margin-top-20">
                             <p slot="title">
@@ -59,7 +49,7 @@
                             </p>
                             <p class="margin-bottom-10">
                                 规则匹配: <br />
-                                <Input v-model="matchRule" placeholder="格式如：org-orgId,user-user_id" style="width: 300px" ></Input>
+                                <Input v-model="match_rule" placeholder="格式如：org-orgId,user-user_id" style="width: 300px" ></Input>
                                 <i-button type="primary" @click="addLinkByMatchRule(1)" size="small">输入匹配</i-button><br /><br />
                                 全局匹配：<br />
                                 <i-button type="primary" @click="addLinkByMatchRule(2)" size="small">驼峰全局匹配</i-button>
@@ -131,22 +121,6 @@
                 <Button type="primary" @click="updateTableGroupRelationNet">确定</Button>
             </Row>
         </Modal>
-        <Modal v-model="showPwd" title="密码设置" @on-cancel="cancelPwdShow">
-            <Row v-if="knowKey" type="flex" justify="center">
-                <Input v-model="dbPwd" style="width: 400px"  class="margin-bottom-10" />
-            </Row>
-            <Row v-if="knowKey"  slot="footer">
-                <Button type="text" @click="cancelPwdShow">取消</Button>
-                <Button type="primary" @click="editDatabasePwdByIdNet">确定</Button>
-            </Row>
-            <Row v-if="!knowKey"  type="flex" justify="center">
-                <Input v-model="dbKey" placeholder="请输入秘钥" style="width: 400px"  class="margin-bottom-10" />
-            </Row>
-            <Row v-if="!knowKey"  slot="footer">
-                <Button type="text" @click="cancelPwdShow">取消</Button>
-                <Button type="primary" @click="confirmDatabasePwdByIdNet">确定</Button>
-            </Row>
-        </Modal>
     </div>
 </template>
 
@@ -160,10 +134,9 @@ export default {
     },
     data () {
         return {
-            knowKey: false,
-            matchRule: "",
+            match_rule: "",
             showAddGroup: false,
-            showPwd: false,
+            treeTableName: "",
             logListColumn: [
                     {
                         title: '信息',
@@ -213,12 +186,11 @@ export default {
                     host: "",
                     port: 3309,
                     username: "",
+                    password: "",
                     schema_name: "",
                     business_unit: 2,
                     product_unit: 1,
             },
-            dbPwd: "",
-            dbKey: "",
             groupDataModel:{
                 id: 0,
                 name: "",
@@ -287,6 +259,7 @@ export default {
             ).then((res)=>{
                 if(res.data.success){
                     this.groupRelation = res.data.message
+                    this.treeTableName = this.groupRelation.group_info[0].children[0].title
                 }else{
                     this.$Message.error("获取表归组列表失败")
                 }
@@ -304,6 +277,9 @@ export default {
                 return
             } else if(this.databaseDataModel.username.trim() == "" || this.databaseDataModel.username === null) {
                 this.$Message.error('请输入用户名')
+                return
+            } else if(this.databaseDataModel.password.trim() == "" || this.databaseDataModel.password === null) {
+                this.$Message.error('请输入密码')
                 return
             } else if(this.databaseDataModel.schema_name.trim() == "" || this.databaseDataModel.schema_name === null) {
                 this.$Message.error('请输入实例名')
@@ -324,69 +300,8 @@ export default {
                 })
             }
         },
-        addPwdShow() {
-            this.showPwd = true
-        },
-        cancelPwdShow() {
-            this.showPwd = false
-            this.dbPwd = ""
-            this.dbPwd = ""
-            this.knowKey = false
-        },
         changeEditShow() {
             this.editIsHide = !this.editIsHide
-        },
-        editDatabasePwdByIdNet() {
-            if(this.dbPwd.trim() == "" || this.dbPwd === null) {
-                this.$Message.error('请输入密码')
-                return
-            } else {
-                axios.post("/v1/database/editDatabasePwdById",
-                    {password: this.dbPwd, id: this.databaseDataModel.id}
-                ).then((res)=>{
-                    if(res.data.success){
-                        this.showPwd = false
-                        this.$Message.success("编辑密码成功")
-                        this.getData()
-                        this.cancelPwdShow()
-                        this.dbPwd = ""
-                    }else{
-                        this.$Message.error(res.data.message)
-                    }
-                })
-            }
-        },
-        confirmDatabasePwdByIdNet() {
-            if(this.dbKey.trim() == "" || this.dbKey === null) {
-                this.$Message.error('请输入秘钥')
-                return
-            } else {
-                axios.post("/v1/database/confirmDatabasePwdById",
-                    {"bu":this.databaseDataModel.business_unit, key:this.dbKey}
-                ).then((res)=>{
-                    if(res.data.success){
-                        this.getDatabasePwdByIdNet()
-                        this.knowKey = !this.knowKey
-                        this.dbKey = ""
-                    }else{
-                        this.$Message.error(res.data.message)
-                    }
-                })
-            }
-        },
-        getDatabasePwdByIdNet() {
-            axios.get("/v1/database/getDatabasePwdById",
-                    {"params":{"id":this.databaseDataModel.id}}
-                ).then((res)=>{
-                    if(res.data.success){
-                        let result = res.data.message
-                        this.dbPwd = result[0]["password"]
-                        console.log(res.data.message.password)
-                        console.log(this.dbPwd)
-                    }else{
-                        this.$Message.error(res.data.message)
-                    }
-                })
         },
         editGroupByIdNet(val, index, key) {
             // todo 编辑为空不能保持编辑状态
@@ -513,7 +428,7 @@ export default {
         addLinkByMatchRule(type) {
             let content = ""
             if(type == 1) {
-                content = this.matchRule
+                content = this.match_rule
             }
             axios.post("/v1/database/addLinkByMatchRule",
                 {"db": this.dbId, "content": content, "type":type}
@@ -524,14 +439,14 @@ export default {
                     this.$Message.error(res.data.message)
                 }
             })
-        },
+        },       
     },
-    // mounted () {
+    mounted () {
         // this.getData()
-    // },
-    // created () {
-    //     this.getData()
-    // },
+    },
+    created () {
+        this.getData()
+    },
     // watch: {
     //     '$route': function (route) {
     //         console.log(1)
@@ -539,10 +454,10 @@ export default {
     //         console.log(2)
     //     },
     // },
-    beforeRouteEnter(to, from, next) {
-        next(vm => {
-            vm.getData()
-        })
-    },
+    // beforeRouteEnter(to, from, next) {
+    //     next(vm => {
+    //         vm.getData()
+    //     })
+    // },
 };
 </script>

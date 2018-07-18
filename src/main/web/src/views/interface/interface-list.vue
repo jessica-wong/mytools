@@ -37,6 +37,11 @@ export default {
         return {
             listColumns: [
                 {
+                    type: 'selection',
+                    width: 60,
+                    align: 'center'
+                },
+                {
                     type: 'expand',
                     width: 50,
                     render: (h, params) => {
@@ -225,6 +230,9 @@ export default {
                     this.$Message.error("获取数据失败")
                 }
             })
+        },
+        handleSelectAll (status) {
+            this.$refs.selection.selectAll(status);
         },
     },
     created () {

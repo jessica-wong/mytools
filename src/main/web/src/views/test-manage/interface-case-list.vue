@@ -6,10 +6,34 @@
     <div>
         <Card class="margin-top-20">
             <div>
-                <Table border :columns="columns" :data="data"></Table>
+                <Row type="flex" class="height-100">
+                    <Col span="8">
+                        <i-button type="success" @click="addCase" style="margin-top-10">新增用例</i-button>
+                        <i-button type="success" @click="modalImport = true" style="margin-top-10">导入用例</i-button>
+                    </Col>
+                    <Col span='8'>
+                        <Input v-model="searchValue" placeholder="用例名">
+                            <Button slot="append" icon="ios-search"  @click="searchCaseByName"></Button>
+                        </Input>
+                    </Col>
+                </Row>
+                <Row class="margin-top-20">
+                    <Col >
+                        <Table border :columns="columns" :data="data"></Table>
+                    </Col>
+                </Row>
             </div>
         </Card>
+        <Modal
+            v-model="modalImport"
+            title="选择导入方式"
+            @on-ok="ok"
+            @on-cancel="cancel">
+            <a>Json文件</a>
+            <a>Har文件</a>
+        </Modal>
     </div>
+
 </template>
 <script>
 import axios  from 'axios';
@@ -19,12 +43,17 @@ export default {
         return{
             columns: [
                 {
+                    type: 'selection',
+                    width: 60,
+                    align: 'center'
+                },
+                {
                     title: '用例名称',
                     key: 'name',
                 },
                 {
                     title: '用例描述',
-                    key: 'describe'
+                    key: 'case_describe'
                 },
                 {
                     title: '操作',
@@ -43,8 +72,9 @@ export default {
                                 },
                                 on: {
                                     click: () => {
-                                        let query={caseId:params.row.id}
-
+                                        this.$router.push({
+                                        path:"/test-manage/interface-case-edit",
+                                        query:{projectId:this.$route.query.projectId,applicationId:this.$route.query.applicationId,caseId:params.row.id}})
                                     }
                                 }
                             }, '编辑'),
@@ -55,7 +85,8 @@ export default {
                                 },
                                 on: {
                                     click: () => {
-                                        this.remove(params.index)
+                                        this.removeCaseData.caseId = params.row.id
+                                        this.removeCase()
                                     }
                                 }
                             }, '删除')
@@ -64,7 +95,11 @@ export default {
                 }
             ],
             data: [],
-
+            modalImport: false,
+            searchValue:"",
+            removeCaseData:{
+                caseId:""
+            },
         }
     },
     methods: {
@@ -79,9 +114,47 @@ export default {
                 }
             })
         },
-        remove (index) {
-            this.data.splice(index, 1);
-        }
+        removeCase() {
+                axios.post("/v1/case/deleteTestCase",
+                this.removeCaseData).then((res)=>{
+                if(res.data.success){
+                    this.$Message.success("成功");
+                    this.getCaseList();
+
+                }else{
+                    this.$Message.error("失败")
+                }
+            })
+            this.removeCaseData = {
+                caseId:"",
+            };
+        },
+        addCase(){
+            this.$router.push({
+            path:"/test-manage/interface-case-edit",
+            query:{projectId:this.$route.query.projectId,applicationId:this.$route.query.applicationId}})
+        },
+        importCase(){
+        },
+        handleSelectAll (status) {
+            this.$refs.selection.selectAll(status);
+        },
+        ok () {
+            this.$Message.info('Clicked ok');
+        },
+        cancel () {
+            this.$Message.info('Clicked cancel');
+        },
+        searchCaseByName(){
+            axios.get("/v1/case/searchCaseByName",{params:{applicationId:this.$route.query.applicationId,projectId:this.$route.query.projectId,searchValue:this.searchValue}}).then((res)=>{
+                if(res.data.success){
+                    this.$Message.success("成功");
+                    this.data=res.data.message
+                }else{
+                    this.$Message.error("失败")
+                }
+            })
+        },
     },
     created () {
         this.getCaseList()

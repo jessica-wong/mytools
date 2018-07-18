@@ -31,7 +31,7 @@ export default {
 
                     {
                         title: '环境名称',
-                        key: 'name'
+                        key: 'env_name'
                     },
                     {
                         title: '创建人',
@@ -84,7 +84,7 @@ export default {
             ],
             list:[],
             addEnvironmentData:{
-                    name:"",
+                    env_name:"",
                     userId:1
             },
             removeEnvironmentData:{
@@ -113,13 +113,13 @@ export default {
                     return h('div',[
                         h('Input', {
                             props: {
-                                value: this.addEnvironmentData.name,
+                                value: this.addEnvironmentData.env_name,
                                 autofocus: true,
                                 placeholder: '环境名称'
                             },
                             on: {
                                 input: (val) => {
-                                    this.addEnvironmentData.name = val;
+                                    this.addEnvironmentData.env_name = val;
                                 }
                             }
                         }),
@@ -142,7 +142,7 @@ export default {
             }
             )
             this.addEnvironmentData = {
-                name:"",
+                env_name:"",
                 userId:1
             };
         },

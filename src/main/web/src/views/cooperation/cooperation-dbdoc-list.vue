@@ -17,8 +17,7 @@
                 </div>
                 <div class="margin-top-10">
                     <div style="font-size:25px">  {{tableDataModel.e_name}}（{{tableDataModel.c_name}}）
-                        <!-- <Button type="success" @click="setCloumnLink"  size="small" >增加外键/数据关系</Button> -->
-                        <Button type="success" @click="setCloumnLink"  size="small" >增加外键关系</Button>
+                        <Button type="success" @click="setCloumnLink"  size="small" >增加外键/数据关系</Button>
                         <Button type="warning" @click="updateCommentNet"  size="small" >更新表信息</Button>
                         <Button type="primary" size="small" @click="exportData(1, tableDataModel.e_name)"><Icon type="ios-download-outline"></Icon> 导出</Button>
                         <Button type="error" size="small" @click="lookLinks">外联关系</Button>
@@ -73,14 +72,13 @@
             </Col>
         <!-- </Card> -->
         </Row>
-    <!-- <Modal v-model="setLinkModal" title="增加外键/数据关系" @on-ok="addColumnLink"> -->
-    <Modal v-model="setLinkModal" title="增加外键关系" @on-ok="addColumnLink">
+    <Modal v-model="setLinkModal" title="增加外键/数据关系" @on-ok="addColumnLink">
         <!-- todo 枚举值先写死了 -->
         <div class="margin-top-10">
           关系类型
           <Select v-model="selectLinkType" style="width:200px">
               <Option :value="1" :key="1">外键关系</Option>
-              <!-- <Option :value="2" :key="2">数据关系</Option> -->
+              <Option :value="2" :key="2">数据关系</Option>
           </Select>
         </div>
         <div class="margin-top-10">
@@ -127,7 +125,7 @@ export default {
         return {
             tableId: 0,
             selectSrcColumn: "",
-            selectLinkType: 1,
+            selectLinkType: "",
             linkDBList: [],
             selectLinkDB: "",
             linkTableList: [],
@@ -149,8 +147,7 @@ export default {
                     editable: false
                 },
                 {
-                    // title: "外键/数据关系",
-                    title: "外键关系",
+                    title: "外键/数据关系",
                     width: 280,
                     key: "links",
                     showlink: true
@@ -245,12 +242,10 @@ export default {
             }).then(res => {
                 if (res.data.success) {
                     this.groupRelation = res.data.message
-                    if(this.tableId == 0) {
-                        let tableId = this.groupRelation.group_info[0].children[0].table_id
-                        this.tableId = tableId
-                    }
+                    let tableId = this.groupRelation.group_info[0].children[0].table_id
+                    this.tableId = tableId
                     // 更新表信息
-                    this.initTableinfo(this.tableId)
+                    this.initTableinfo(tableId)
                 } else {
                     this.$Message.error("获取表分组关系列表失败")
                 }
@@ -471,7 +466,7 @@ export default {
             // $set赋值
             this.groupRelation.group_info.forEach(grops =>{
                 grops.children.forEach(item =>{
-                    if(item.table_id==id){
+                    if(item.tableId==id){
                         this.$set(item,'selected',true)
                     }else{
                         this.$set(item,'selected',false)
@@ -489,16 +484,15 @@ export default {
             this.addColumnLinkNet()
         },
         addColumnLinkNet() {
-            // let db_id = this.selectLinkDB
-            // let tableId = this.selectLinkTable
+            let db_id = this.selectLinkDB
+            let tableId = this.selectLinkTable
             axios.post("/v1/database/addColumnLink",
                 this.columnLinkModel
             ).then((res)=>{
                 if(res.data.success){
                     this.$Message.success("添加字段关系成功")
                     // 为什么this.selectLinkDB没用 作用域不一样
-                    // this.getTableGroupRelationListNet(db_id)
-                    this.getColumnListByTableIdNet(this.tableId)
+                    this.getTableGroupRelationListNet(db_id)
                 }else{
                     this.$Message.error(res.data.message)
                 }
@@ -591,8 +585,7 @@ export default {
                 id: this.tableId, db_id: this.dbId
             }).then(res => {
                 if (res.data.success) {
-                    this.getTableGroupRelationListNet(this.dbId)
-                    this.$Message.success("更新表信息成功")
+                    this.getTableGroupRelationListNet(this.dbId)  
                 } else {
                     this.$Message.error(res.data.message)
                 }
@@ -604,8 +597,7 @@ export default {
             }).then(res => {
                 if (res.data.success) {
                     this.$Message.success("编辑表备注成功")
-                    // this.getTableGroupRelationListNet(this.dbId)
-                    this.getTableInfoByIdNet(this.tableId)
+                    this.getTableGroupRelationListNet(this.dbId)  
                 } else {
                     this.$Message.error(res.data.message)
                 }
@@ -635,9 +627,9 @@ export default {
             this.$router.push({path:"/cooperation/cooperation-dbdoc-link",query:{id:this.tableId}})
         },
     },
-    // created() {
-    //     this.getData()
-    // },
+    created() {
+        this.getData()
+    },
     // watch: {
     //     '$route': function (route) {
     //         console.log(1)
@@ -647,10 +639,10 @@ export default {
     //         console.log(2)
     //     },
     // },
-    beforeRouteEnter(to, from, next) {
-        next(vm => {
-            vm.getData()
-        })
-    },
+    // beforeRouteEnter(to, from, next) {
+    //     next(vm => {
+    //         vm.getData()
+    //     })
+    // },
 }
 </script>
