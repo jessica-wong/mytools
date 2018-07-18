@@ -1,0 +1,504 @@
+#user management
+CREATE TABLE `user` (
+`id` int(11) NOT NULL auto_increment,
+`username` varchar(255) NOT NULL unique,
+`passwd` varchar(255) NOT NULL,
+`mobile` varchar(20) default NULL,
+`userid_ding` varchar(255) default NULL,
+`unionid` varchar(255) default NULL,
+`department_id` int(11) default NULL,
+`ding_department_id` int(11) default NULL,
+`roles` varchar(255) NOT NULL,
+`status` tinyint(4) default 0 COMMENT '0: enable 1: disable',
+`isleader` tinyint(4) default 0 COMMENT '0: is not leader 1: is leader',
+`remarks` varchar(255) default NULL,
+`gmt_create` datetime DEFAULT NULL,
+`gmt_modify` timestamp default CURRENT_TIMESTAMP on update CURRENT_TIMESTAMP,
+PRIMARY KEY(`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8;
+
+ALTER TABLE `user` ADD unique(`username`);
+
+CREATE TABLE `department` (
+`id` int(11) NOT NULL auto_increment,
+`department_name` varchar(255) NOT NULL unique,
+`ding_department_id` int(11) DEFAULT NULL,
+`status` tinyint(4) default 0 COMMENT '0: enable 1: disable',
+`remarks` varchar(255) default NULL,
+`gmt_create` datetime DEFAULT NULL,
+`gmt_modify` timestamp default CURRENT_TIMESTAMP on update CURRENT_TIMESTAMP,
+PRIMARY KEY(`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8;
+
+ALTER TABLE `department` ADD unique(`department_name`);
+
+# 待使用
+CREATE TABLE `authority` (
+`id` int(11) NOT NULL auto_increment,
+`powerId` int(11) default 0 NOT NULL,
+`businessId` int(11) default 0 NOT NULL,
+`userId` int(11) default 0 NOT NULL,
+PRIMARY KEY(`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8;
+# 待使用，特权who（用户、角色、部门），what（按钮、页面、模块、产品），how（只读、读写）
+CREATE TABLE `privilege` (
+`id` int(11) NOT NULL auto_increment,
+`privilege_master` int(11) default 0 NOT NULL,
+`privilege_master_value` int(11) default 0 NOT NULL,
+`privilege_access` int(11) default 0 NOT NULL,
+`privilege_access_value` int(11) default 0 NOT NULL,
+`privilege_operation` tinyint(4) default 0 COMMENT '0: enable 1: disable',
+PRIMARY KEY(`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8;
+
+# project management（项目概念为一个版本，其中可能包含多个应用的迭代）
+CREATE TABLE `project` (
+`id` int(11) NOT NULL auto_increment,
+`name` varchar(255) NOT NULL unique,
+`version` varchar(255) DEFAULT NULL,
+`project_discribe` varchar(255) DEFAULT NULL,
+`department_id` int(11) default NULL,
+`release_time` datetime DEFAULT NULL,
+`create_userid` int(11) NOT NULL,
+`create_username` varchar(255) NOT NULL,
+`gmt_create` datetime DEFAULT NULL,
+`gmt_modify` timestamp default CURRENT_TIMESTAMP on update CURRENT_TIMESTAMP,
+PRIMARY KEY(`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8;
+ALTER TABLE `project` ADD unique(`name`);
+
+CREATE TABLE `application` (
+`id` int(11) NOT NULL auto_increment,
+`name` varchar(255) NOT NULL unique,
+`application_describe` varchar(255) DEFAULT NULL,
+`department_id` int(11) DEFAULT NULL,
+`create_userid` int(11) NOT NULL,
+`create_username` varchar(255) NOT NULL,
+`remarks` varchar(255) DEFAULT NULL,
+`gmt_create` datetime DEFAULT NULL,
+`gmt_modify` timestamp default CURRENT_TIMESTAMP on update CURRENT_TIMESTAMP,
+PRIMARY KEY(`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8;
+ALTER TABLE `application` ADD unique(`name`);
+
+CREATE TABLE `application_version` (
+`id` int(11) NOT NULL auto_increment,
+`application_id` int(11) NOT NULL,
+`project_id` int(11) NOT NULL,
+`department_id` int(11) NOT NULL,
+`create_userid` int(11) NOT NULL,
+`create_username` varchar(255) NOT NULL,
+`remarks` varchar(255) DEFAULT NULL,
+`gmt_create` datetime DEFAULT NULL,
+`gmt_modify` timestamp default CURRENT_TIMESTAMP on update CURRENT_TIMESTAMP,
+PRIMARY KEY(`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8;
+
+CREATE TABLE `version_config` (
+`id` int(11) NOT NULL auto_increment,
+`application_version_id` int(11) DEFAULT NULL,
+`application_id` int(11) DEFAULT NULL,
+`project_id` int(11) DEFAULT NULL,
+`git_url` varchar(255) NOT NULL,
+`swagger_url` varchar(255) NOT NULL,
+`test_url` varchar(255) NOT NULL,
+`create_userid` int(11) NOT NULL,
+`create_username` varchar(255) NOT NULL,
+`gmt_create` datetime DEFAULT NULL,
+`gmt_modify` timestamp default CURRENT_TIMESTAMP on update CURRENT_TIMESTAMP,
+PRIMARY KEY(`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8;
+
+# interface management
+
+CREATE TABLE `interface` (
+`id` int(11) NOT NULL auto_increment,
+`name` varchar(255) NOT NULL,
+`url` varchar(255) NOT NULL,
+`create_userid` int(11) NOT NULL,
+`create_username` varchar(255) NOT NULL,
+`update_userid` int(11) DEFAULT NULL,
+`update_username` varchar(255) DEFAULT NULL,
+`interface_describe` varchar(255) DEFAULT NULL,
+`params` text DEFAULT NULL,
+`success_response` text DEFAULT NULL,
+`failure_response` text DEFAULT NULL,
+`method` tinyint(4) NOT NULL COMMENT '0: GET 1: POST 2.PUT 3. DELETE',
+`format` tinyint(4) NOT NULL COMMENT '0: form-data 1: json',
+`response_type` tinyint(4) default 0 COMMENT '0: json 1: view',
+`status` tinyint(4) default 0 COMMENT '0: enable 1: disable',
+`remarks` varchar(255) DEFAULT NULL,
+`projectid` int(11) NOT NULL,
+`groupid` int(11) NOT NULL,
+`gmt_create` datetime DEFAULT NULL,
+`gmt_modify` timestamp default CURRENT_TIMESTAMP on update CURRENT_TIMESTAMP,
+PRIMARY KEY(`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8;
+
+CREATE TABLE `interface_history` (
+`id` int(11) NOT NULL auto_increment,
+`project_id` int(11) NOT NULL,
+`interface_id` int(11) NOT NULL,
+`history_request` text DEFAULT NULL,
+`history_response` text DEFAULT NULL,
+`content` varchar(255) DEFAULT NULL,
+`gmt_create` datetime DEFAULT NULL,
+PRIMARY KEY(`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8;
+
+CREATE TABLE `group_info` (
+`id` int(11) NOT NULL auto_increment,
+`name` varchar(255) NOT NULL,
+`create_userid` int(11) NOT NULL,
+`type` tinyint(4) DEFAULT 0 COMMENT '0: api 1: case',
+`projectid` int(11) NOT NULL,
+`parent_groupid` int(11) DEFAULT 0,
+`ischild` tinyint(4) DEFAULT 0 COMMENT '0:not child 1:is child',
+`gmt_create` datetime DEFAULT NULL,
+`gmt_modify` timestamp default CURRENT_TIMESTAMP on update CURRENT_TIMESTAMP,
+PRIMARY KEY(`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8;
+
+CREATE TABLE `environment` (
+`id` int(11) NOT NULL auto_increment,
+`name` varchar(255) NOT NULL unique,
+`url` varchar(255) default NULL,
+`create_userid` int(11) default NULL,
+`create_username` varchar(255) default NULL,
+`datatemplate` longtext default NULL,
+`dbname` varchar(255) DEFAULT NULL,
+`dbhostname` varchar(255) DEFAULT NULL,
+`dbport` varchar(255) DEFAULT NULL,
+`dbusername` varchar(255) DEFAULT NULL,
+`dbpasswd` varchar(255) DEFAULT NULL,
+`gmt_create` datetime DEFAULT NULL,
+`gmt_modify` timestamp default CURRENT_TIMESTAMP on update CURRENT_TIMESTAMP,
+PRIMARY KEY(`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8;
+
+ALTER TABLE `environment` ADD unique(`name`);
+
+#case management
+
+CREATE TABLE `test_case` (
+  `Id` int(11) NOT NULL AUTO_INCREMENT,
+  `name` varchar(255) DEFAULT NULL,
+  `project_id` int(11) DEFAULT NULL COMMENT '项目id，关联project.id',
+  `application_id` int(11) DEFAULT NULL COMMENT '应用id，关联application.id',
+  `group_id` int(11) DEFAULT NULL COMMENT '分组id',
+  `describe` varchar(255) DEFAULT NULL COMMENT '用例描述',
+  `case_status` tinyint(3) DEFAULT NULL COMMENT '用例状态 0 启用 1 禁用',
+  `create_userid` int(11) DEFAULT NULL COMMENT '创建用户id',
+  `update_userid` int(11) DEFAULT NULL COMMENT '更新人id',
+  `gmt_modify` datetime DEFAULT NULL COMMENT '编辑时间',
+  `gmt_create` datetime DEFAULT NULL COMMENT '创建时间',
+  PRIMARY KEY (`Id`)
+) ENGINE=MyISAM DEFAULT CHARSET=utf8;
+
+弃用
+CREATE TABLE `testcase` (
+`id` int(11) NOT NULL auto_increment,
+`name` varchar(255) NOT NULL,
+`create_userid` int(11) NOT NULL,
+`create_username` varchar(255) NOT NULL,
+`update_userid` int(11) NOT NULL,
+`update_username` varchar(255) NOT NULL,
+`case_describe` varchar(255) NOT NULL,
+`status` tinyint(4) default 0 COMMENT '0: enable 1: disable',
+`remarks` varchar(255) DEFAULT NULL,
+`projectid` int(11) NOT NULL,
+`groupid` int(11) NOT NULL,
+`gmt_create` datetime DEFAULT NULL,
+`gmt_modify` timestamp default CURRENT_TIMESTAMP on update CURRENT_TIMESTAMP,
+PRIMARY KEY(`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8;
+
+CREATE TABLE `case_content` (
+  `Id` int(11) NOT NULL AUTO_INCREMENT,
+  `case_id` int(11) DEFAULT NULL COMMENT '关联test_case.id',
+  `ip_url` varchar(255) DEFAULT NULL COMMENT '请求ip地址',
+  `ip_port` varchar(255) DEFAULT NULL COMMENT '请求ip的端口号',
+  `path` varchar(255) DEFAULT NULL COMMENT '请求path',
+  `webapi_path` varchar(255) DEFAULT NULL COMMENT '关联webapi.path',
+  `method` tinyint(3) DEFAULT NULL COMMENT '请求方式0： get 1：post',
+  `connect_type` tinyint(3) DEFAULT NULL COMMENT '请求格式0：application/json,text/json，1：formdata，2：文件流，3：base64上传',
+  `requests_params` text COMMENT '请求参数',
+  `timeout` int(11) DEFAULT NULL COMMENT '超时时间',
+  PRIMARY KEY (`Id`)
+) ENGINE=MyISAM DEFAULT CHARSET=utf8 COMMENT='用例内容表';
+
+弃用
+CREATE TABLE `casecontent` (
+`id` int(11) NOT NULL auto_increment,
+`step_name` varchar(255) NOT NULL,
+`caseid` int(11) NOT NULL,
+`step` int(11) NOT NULL,
+`interfaceid` int(11) DEFAULT NULL,
+`url` varchar(255) DEFAULT NULL,
+`method` tinyint(4) DEFAULT NULL COMMENT '0: GET 1: POST 2.PUT 3. DELETE',
+`format` tinyint(4) DEFAULT NULL COMMENT '0: form-data 1: json',
+`request_params` varchar(255) DEFAULT NULL,
+`timeout` int(11) DEFAULT NULL,
+`type` tinyint(4) default 0 COMMENT '0: api 1: sql',
+`sqlcontent` varchar(255) DEFAULT NULL,
+`response_type` tinyint(4) DEFAULT '0' COMMENT '0: json 1: view',
+PRIMARY KEY(`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8;
+
+CREATE TABLE `assert` (
+`id` int(11) NOT NULL auto_increment,
+`casecontentid` int(11) NOT NULL,
+`actual` varchar(255) NOT NULL,
+`expect` varchar(255) DEFAULT NULL,
+`assert_type` varchar(255) NOT NULL COMMENT '0: equal 1: not equal 2: contain 3:not contain ',
+PRIMARY KEY(`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8;
+
+CREATE TABLE `testsuite` (
+`id` int(11) NOT NULL auto_increment,
+`name` varchar(255) NOT NULL unique,
+`testcaseids` text DEFAULT NULL,
+`create_userid` int(11) NOT NULL,
+`create_username` varchar(255) NOT NULL,
+`update_userid` int(11) NOT NULL,
+`update_username` varchar(255) NOT NULL,
+`status` tinyint(4) default 0 COMMENT '0: enable 1: disable',
+`remarks` varchar(255) DEFAULT NULL,
+`envid` int(11) DEFAULT NULL,
+`projectid` int(11) DEFAULT NULL,
+`gmt_create` datetime DEFAULT NULL,
+`gmt_modify` timestamp default CURRENT_TIMESTAMP on update CURRENT_TIMESTAMP,
+PRIMARY KEY(`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8;
+ALTER TABLE `testsuite` ADD unique(`name`);
+
+CREATE TABLE `testcaseinstance` (
+`id` int(11) NOT NULL auto_increment,
+`create_userid` int(11) NOT NULL,
+`create_username` varchar(255) NOT NULL,
+`suite_name` varchar(255) NOT NULL,
+`suite_id` int(11) NOT NULL,
+`status` varchar(255) NOT NULL COMMENT 'wait,run,stop,fail,success,timeout,error',
+`build_start` datetime DEFAULT NULL,
+`build_end` datetime DEFAULT NULL,
+`trigger_type` tinyint(4) default 0 COMMENT '0: manual 1: ci 2:crontab',
+`gmt_create` datetime DEFAULT NULL,
+`gmt_modify` timestamp default CURRENT_TIMESTAMP on update CURRENT_TIMESTAMP,
+PRIMARY KEY(`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8;
+
+CREATE TABLE `caseresult` (
+`id` int(11) NOT NULL auto_increment,
+`instanceid` int(11) NOT NULL,
+`caseid` int(11) NOT NULL,
+`casename` varchar(255) NOT NULL,
+`runtime` int(11) DEFAULT NULL,
+`status` varchar(255) NOT NULL COMMENT 'wait,run,stop,fail,success,timeout,error',
+`exec_start` datetime DEFAULT NULL,
+`exec_end` datetime DEFAULT NULL,
+`message` text DEFAULT NULL,
+`remarks` varchar(255) DEFAULT NULL,
+`gmt_create` datetime DEFAULT NULL,
+`gmt_modify` timestamp default CURRENT_TIMESTAMP on update CURRENT_TIMESTAMP,
+PRIMARY KEY(`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8;
+
+CREATE TABLE `taskmetaqinfo` (
+`id` int(11) NOT NULL auto_increment,
+`instanceid` int(11) NOT NULL,
+`status` varchar(255) NOT NULL COMMENT '0 wait 1 send 2 receive',
+`running_consumer` varchar(255) DEFAULT NULL,
+`msg_id` varchar(255) DEFAULT NULL COMMENT 'process id',
+`message` text DEFAULT NULL,
+`is_deleted` tinyint(4) DEFAULT 0,
+`gmt_create` datetime DEFAULT NULL,
+`gmt_modify` timestamp default CURRENT_TIMESTAMP on update CURRENT_TIMESTAMP,
+PRIMARY KEY(`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8;
+
+CREATE TABLE `session_manage` (
+`id` int(11) NOT NULL auto_increment,
+`user_id` int(11) NOT NULL,
+`session` varchar(255) NOT NULL,
+`domain` varchar(255) DEFAULT NULL,
+`gmt_create` datetime DEFAULT NULL,
+`gmt_modify` timestamp default CURRENT_TIMESTAMP on update CURRENT_TIMESTAMP,
+PRIMARY KEY(`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8;
+
+# db management
+create table column_link
+(
+	id int auto_increment
+		primary key,
+	src_column_id int default '0' not null comment '数据源字段Id',
+	src_table_id int default '0' not null comment '数据源表Id',
+	relation_type tinyint not null comment '关系类型: 1外键关系, 2数据关系',
+	link_column_id int default '0' not null comment '关联字段Id',
+	link_table_id int default '0' not null comment '关联表Id'
+) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8
+comment '字段关系表'
+;
+
+create table db_column
+(
+	id int auto_increment
+		primary key,
+	table_id int default '0' not null comment '关联表Id',
+	e_name varchar(255) not null comment '字段英文名',
+	type varchar(32) not null comment '字段数据类型',
+	remark varchar(1024) not null comment '字段备注',
+	discarded tinyint not null comment '字段废弃: 0未废弃, 1废弃',
+	hide tinyint default '0' null comment '字段在外联关系视图中是否可见: 0不可见 1可见',
+	unlink tinyint default '0' null comment '字段在外联关系视图中是否显示关联: 0关联 1不关联',
+	gmt_create datetime null comment '创建时间',
+	gmt_modify timestamp default CURRENT_TIMESTAMP not null comment '修改时间'
+) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8
+comment '字段表'
+;
+
+create table db_log
+(
+	id int auto_increment
+		primary key,
+	db_id int default '0' not null comment '关联数据库Id',
+	content text not null comment '操作内容',
+	user_id int default '0' not null comment '操作人',
+	gmt_create datetime null comment '操作时间'
+) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8
+comment '数据库日志表'
+;
+
+create table db_manage
+(
+	id int auto_increment
+		primary key,
+	name varchar(255) not null comment '自定义连接名',
+	host varchar(255) not null comment '主机名',
+	port int(4) default '0' not null comment '端口号',
+	username varchar(32) not null comment '连接用户名',
+	password varchar(128) not null comment '连接密码',
+	schema_name varchar(32) not null comment '实例名',
+	business_unit tinyint default '0' not null comment '关联事业线Id',
+	product_unit tinyint default '0' not null comment '关联产品Id'
+) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8
+comment '数据库表'
+;
+
+create table db_table
+(
+	id int auto_increment
+		primary key,
+	db_id int default '0' not null comment '关联数据库Id',
+	c_name varchar(255) not null comment '表中文名',
+	e_name varchar(255) not null comment '表英文名',
+	remark varchar(1024) not null comment '表备注',
+	discarded tinyint not null comment '表废弃: 0未废弃, 1废弃',
+	gmt_create datetime null comment '创建时间',
+	gmt_modify timestamp default CURRENT_TIMESTAMP not null comment '修改时间'
+) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8
+comment '表信息表'
+;
+
+create table table_group
+(
+	id int auto_increment
+		primary key,
+	db_id int default '0' not null comment '关联数据库Id',
+	name varchar(64) not null comment '分组名',
+	define tinyint default '0' not null comment '自定义: 0不是, 是',
+	sort tinyint default '0' null comment '排序'
+) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8
+comment '分组表'
+;
+
+create table table_group_relation
+(
+	id int auto_increment
+		primary key,
+	table_id int default '0' not null comment '关联表Id',
+	group_id int default '0' not null comment '关联分组Id'
+) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8
+comment '表-分组关系表'
+;
+
+alter  table  column_link add unique index link_unique_index(src_column_id,src_table_id,link_column_id,link_table_id,relation_type);
+
+CREATE TABLE `webapi` (
+  `Id` bigint(20) NOT NULL AUTO_INCREMENT,
+  `ProjectId` bigint(20) NOT NULL,
+  `ApplicationId` bigint(20) NOT NULL,
+  `Version` bigint(20) NOT NULL,
+  `Summary` varchar(200) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `OperationId` varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `Path` varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `Method` varchar(20) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `Produces` varchar(200) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `Consumes` varchar(200) COLLATE utf8mb4_unicode_ci NOT NULL,
+  PRIMARY KEY (`Id`)
+) ENGINE=InnoDB AUTO_INCREMENT=248 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE `webapi_diff` (
+  `Id` bigint(20) NOT NULL AUTO_INCREMENT,
+  `ProjectId` bigint(20) NOT NULL,
+  `ApplicationId` bigint(20) NOT NULL,
+  `OperationId` varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `DiffType` int(11) NOT NULL,
+  PRIMARY KEY (`Id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE `webapi_parameter` (
+  `Id` bigint(20) NOT NULL AUTO_INCREMENT,
+  `ParameterType` int(11) NOT NULL,
+  `WebApiId` bigint(20) NOT NULL,
+  `Name` varchar(200) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `In` varchar(20) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `Required` bit(1) NOT NULL,
+  `Description` varchar(200) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `Schema` longtext COLLATE utf8mb4_unicode_ci NOT NULL,
+  `Type` varchar(20) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `Format` varchar(20) COLLATE utf8mb4_unicode_ci NOT NULL,
+  PRIMARY KEY (`Id`)
+) ENGINE=InnoDB AUTO_INCREMENT=643 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE `webapi_parameter_diff` (
+  `Id` bigint(20) NOT NULL AUTO_INCREMENT,
+  `WebApiDiffId` bigint(20) NOT NULL,
+  `ParameterName` varchar(50) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `DiffType` int(11) NOT NULL,
+  PRIMARY KEY (`Id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE `webapi_parameter_property` (
+  `Id` bigint(20) NOT NULL AUTO_INCREMENT,
+  `WebApiParameterId` bigint(20) NOT NULL,
+  `Name` varchar(200) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `Format` varchar(20) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `Description` varchar(200) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `Type` varchar(20) COLLATE utf8mb4_unicode_ci NOT NULL,
+  PRIMARY KEY (`Id`)
+) ENGINE=InnoDB AUTO_INCREMENT=2710 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE `webapi_parameter_property_diff` (
+  `Id` bigint(20) NOT NULL AUTO_INCREMENT,
+  `WebApiParameterDiffId` bigint(20) NOT NULL,
+  `PropertyName` varchar(1000) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `DiffType` int(11) NOT NULL,
+  PRIMARY KEY (`Id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE `webapi_version` (
+  `ProjectId` bigint(20) NOT NULL,
+  `ApplicationId` bigint(20) NOT NULL,
+  `Version` bigint(20) NOT NULL,
+  `SwaggerJson` longtext COLLATE utf8mb4_unicode_ci NOT NULL,
+  PRIMARY KEY (`ApplicationId`,`ProjectId`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE `webapi_tag` (
+  `ProjectId` bigint(20) NOT NULL,
+  `ApplicationId` bigint(20) NOT NULL,
+  `tag_status` tinyint(4) default 0 COMMENT '0: 无变化 1: 新增 2: 编辑 3：删除
+  `tag_test` tinyint(4) default 0 COMMENT '0: 测试未覆盖 1: 测试已覆盖
+  PRIMARY KEY (`ApplicationId`,`ProjectId`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

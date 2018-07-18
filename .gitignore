@@ -1,0 +1,10 @@
+**/.cache/
+.vscode/
+.idea/
+__pycache__/
+*.pyc
+*.log_warn
+src/main/web/node_modules/
+src/main/master/LogFiles/
+/src/main/master/LogFiles
+LogFiles/
