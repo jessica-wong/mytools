@@ -62,9 +62,6 @@ export const otherRouter = {
         { path: 'interface/interface-edit', title: '编辑接口', name: 'interface-edit', component: resolve => { require(['@/views/interface/interface-edit.vue'], resolve); } },
         { path: 'testcase/test-collection/case-list', title: '用例列表', name: 'case-list', component: resolve => { require(['@/views/testcase/test-collection/case-list.vue'], resolve); } },
         { path: 'testcase/test-collection/case-edit', title: '用例编辑', name: 'case-edit', component: resolve => { require(['@/views/testcase/test-collection/case-edit.vue'], resolve); } },
-        { path: 'testcase/test-suite/test-suite', title: '用例套件', name: 'test_suite', component: resolve => { require(['@/views/testcase/test-suite/test-suite.vue'], resolve); } },
-        { path: 'testcase/test-suite/suite-info', title: '套件详情', name: 'suite-info', component: resolve => { require(['@/views/testcase/test-suite/suite-info.vue'], resolve); } },
-
         { path: 'testcase/test-suite/suite-info', title: '套件详情', name: 'suite-info', component: resolve => { require(['@/views/testcase/test-suite/suite-info.vue'], resolve); } },
         { path: 'cooperation/environment-info', title: '环境详情', name: 'environment-info', component: resolve => { require(['@/views/cooperation/environment-info.vue'], resolve); } },
         { path: 'cooperation/cooperation-db-info', title: '数据库设置', name: 'cooperation-db-info', component: resolve => { require(['@/views/cooperation/cooperation-db-info.vue'], resolve); } },
@@ -73,7 +70,7 @@ export const otherRouter = {
         { path: 'test-manage/interface-test', title: '接口测试', name: 'interface-test', component: resolve => { require(['@/views/test-manage/interface-test.vue'], resolve); } },
         { path: 'test-manage/interface-case-version', title: '用例版本', name: 'interface-case-version', component: resolve => { require(['@/views/test-manage/interface-case-version.vue'], resolve); } },
         { path: 'test-manage/interface-case-list', title: '用例列表', name: 'interface-case-list', component: resolve => { require(['@/views/test-manage/interface-case-list.vue'], resolve); } },
-        { path: 'test-manage/interface-case-edit', title: '用例编辑', name: 'interface-case-edit', component: resolve => { require(['@/views/test-manage/interface-case-edit.vue'], resolve); } },
+
     ]
 };
 

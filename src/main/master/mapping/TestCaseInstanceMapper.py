@@ -28,10 +28,10 @@ class TestInstanceSQLMapper:
     def __setSQL(self):
         #WRITE SQL FOR API
         addTestInstanceSQL="""
-        insert into testcaseinstance (create_userid,create_username,suite_name,suite_id,
-        status,trigger_type,gmt_create) 
+        insert into testcaseinstance (create_userid,create_username,project_id,application_id,suite_name,suite_id,
+        status,trigger_type,build_start,gmt_create) 
         values 
-        (%(userId)s,%(userName)s,%(suiteName)s,%(suiteId)s,%(status)s,%(trigger_type)s,now())
+        (%(userId)s,%(userName)s,%(projectId)s,%(applicationId)s,%(suiteName)s,%(suiteId)s,%(status)s,%(triggerType)s,now(),now())
         """
         updateTestInstanceSQL="""
         update testcaseinstance set build_start=%(build_start)s,build_end=%(build_end)s,
@@ -40,7 +40,15 @@ class TestInstanceSQLMapper:
         getTestInstanceInfoByIdSQL="""
         select * from testcaseinstance where id = %(instanceId)s
         """
+        getPengdingInstanceInfosSQL="""
+        select id as instanceId,project_id as projectId,application_id as applicationId from testcaseinstance where status = 0 limit 0,%(limit)s 
+        """
+        updateTestInstanceStatusSQL="""
+        update testcaseinstance set status=%(status)s where id=%(instanceId)s
+        """
         #SET SQL FOR DAO
         self.data.setdefault("addTestInstance",addTestInstanceSQL)
         self.data.setdefault("updateTestInstance", updateTestInstanceSQL)
         self.data.setdefault("getTestInstanceInfoById", getTestInstanceInfoByIdSQL)
+        self.data.setdefault("getPengdingInstanceInfos", getPengdingInstanceInfosSQL)
+        self.data.setdefault("updateTestInstanceStatus", updateTestInstanceStatusSQL)

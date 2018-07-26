@@ -302,10 +302,35 @@ class TaskCenterService(object):
 
     @AdminDecoratorServer.execImplDecorator()
     def startTask(self,args):
-        pass
+        # 暂时不支持套件
+        args.setdefault("suiteName","")
+        args.setdefault("suiteId",0)
+        # 排队中
+        args.setdefault("status",0)
+        # 手工触发
+        args.setdefault("triggerType",0)
+        return TestCaseInstanceDaoInterface().addTestInstance(args)
+
 
     @AdminDecoratorServer.execImplDecorator()
     def execTask(self,args):
+        pass
+
+    @AdminDecoratorServer.execImplDecorator()
+    def crontabTask(self):
+        args={}
+        args.setdefault("limit",SystemConfig.maxThreadSize)
+        pendingTasks = TestCaseInstanceDaoInterface().getPengdingInstanceInfos(args)
+        for pendingTask in list(pendingTasks):
+            # 回写master 实例状态  排队--->运行中
+            pendingTask["status"] = 1
+            dateResult = TestCaseInstanceDaoInterface().updateTestInstanceStatus(pendingTask)
+            if dateResult.getSuccess():
+                # 异步执行测试任务 需要用到线程池
+                self.startTaskByBatchCase(pendingTask)
+
+    @AdminDecoratorServer.execImplDecorator()
+    def queryTask(self):
         pass
 
     # def startTaskBySingleCase(self,args):
@@ -441,6 +466,7 @@ class TaskCenterService(object):
 
     def startTaskByBatchCase(self,args):
         logger.info(args)
+        isSuccess = True
         dataResult = DataResult()
         getCaseIds = TestCaseDaoInterface().getCaseIds(args)
         if getCaseIds.getSuccess():
@@ -535,9 +561,11 @@ class TaskCenterService(object):
                             tmpArgs["elapsed_ms"]=response.elapsed.microseconds / 1000.0
                             message.append(tmpArgs)
                             if response.status_code == 200:
+                                #此处需要验证用户自定义断言
                                 caseResult.setdefault("exe_status", "success")
                             else:
                                 caseResult.setdefault("exe_status", "fail")
+                                isSuccess=False
                         caseResult.setdefault("message",str(message))
                         caseResult.setdefault("runtime", (time.time()-exec_start)*1000)
                         logger.info(caseResult)
@@ -546,6 +574,13 @@ class TaskCenterService(object):
                         logger.info(createCaseResult.getMessage())
             else:
                 dataResult.setMessage("项目中无可执行的用例")
+                isSuccess = False
         else:
             dataResult.setMessage("获取用例失败")
+            isSuccess = False
+        if isSuccess:
+            args["status"] = 2
+        else:
+            args["status"] = 3
+        TestCaseInstanceDaoInterface().updateTestInstanceStatus(args)
         return dataResult

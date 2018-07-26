@@ -19,8 +19,8 @@ class TestCaseInstanceService(object):
 
     @AdminDecoratorServer.execImplDecorator()
     def addTestInstance(self,args):
-        if "trigger_type" not in args:
-            args.setdefault("trigger_type",None)
+        if "triggerType" not in args:
+            args.setdefault("triggerType",0)
         return self.testCaseInstanceDaoInterface.addTestInstance(args)
 
     @AdminDecoratorServer.execImplDecorator()

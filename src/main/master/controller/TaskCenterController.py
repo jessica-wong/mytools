@@ -81,4 +81,8 @@ class TaskCenterHandler(tornado.web.RequestHandler):
     def startTaskByBatchCase(self):
         data = json.loads(self.request.body)
         logger.info(data)
-        return TaskCenterService().startTaskByBatchCase(data)
+        userId = self.get_secure_cookie("userId")
+        userName = self.get_secure_cookie("userName")
+        data["userId"]=userId
+        data["userName"]=userName
+        return TaskCenterService().startTask(data)
