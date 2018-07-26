@@ -56,6 +56,7 @@ class DatabaseHandler(tornado.web.RequestHandler):
         try:
             tasks = {
                 'getDatabaseInfoById': lambda: self.getDatabaseInfoById(),
+                'getDatabasePwdById': lambda: self.getDatabasePwdById(),
                 'getDatabaseList':lambda :self.getDatabaseList(),
                 'getTableGroupInfoById': lambda: self.getTableGroupInfoById(),
                 'getTableGroupList': lambda: self.getTableGroupList(),
@@ -92,6 +93,8 @@ class DatabaseHandler(tornado.web.RequestHandler):
                 'addDatabase' : lambda : self.addDatabase(),
                 'deleteDatabase':lambda :self.deleteDatabase(),
                 'editDatabase':lambda :self.editDatabase(),
+                'editDatabasePwdById': lambda: self.editDatabasePwdById(),
+                'confirmDatabasePwdById': lambda: self.confirmDatabasePwdById(),
                 'addTableGroup': lambda: self.addTableGroup(),
                 'deleteTableGroup': lambda: self.deleteTableGroup(),
                 'editTableGroup': lambda: self.editTableGroup(),
@@ -160,7 +163,7 @@ class DatabaseHandler(tornado.web.RequestHandler):
             result.setMessage(self.errCode.NONE_DB_USERNAME)
             return result
         if self.commonTool.is_none_str(data["password"]):
-            result.setMessage(self.errCode.NONE_DB_PSD)
+            result.setMessage(self.errCode.NONE_DB_PWD)
             return result
         if self.commonTool.is_none_str(data["schema_name"]):
             result.setMessage(self.errCode.NONE_DB_SCHEMAA)
@@ -171,14 +174,22 @@ class DatabaseHandler(tornado.web.RequestHandler):
         db_id= self.get_argument("id")
         return DatabaseService().getDatabaseInfoById(db_id)
 
+    def getDatabasePwdById(self):
+        db_id = self.get_argument("id")
+        return DatabaseService().getDatabasePwdById(db_id)
+
     def getDatabaseList(self):
-        # todo 后面传了bu的Id
         business_unit = self.get_argument("id")
         return DatabaseService().getDatabaseList(business_unit)
 
     @AdminDecoratorServer.webInterceptorDecorator(SystemConfig.adminHost)
     def deleteDatabase(self):
-        return DatabaseService().deleteDatabase(json.loads(self.request.body))
+        data = json.loads(self.request.body)
+        result = DataResult()
+        if self.commonTool.is_zero(data["id"]):
+            result.setMessage(self.errCode.NONE_DB_ID)
+            return result
+        return DatabaseService().deleteDatabase(data)
 
     @AdminDecoratorServer.webInterceptorDecorator(SystemConfig.adminHost)
     def editDatabase(self):
@@ -196,9 +207,6 @@ class DatabaseHandler(tornado.web.RequestHandler):
         if self.commonTool.is_none_str(data["username"]):
             result.setMessage(self.errCode.NONE_DB_USERNAME)
             return result
-        if self.commonTool.is_none_str(data["password"]):
-            result.setMessage(self.errCode.NONE_DB_PSD)
-            return result
         if self.commonTool.is_none_str(data["schema_name"]):
             result.setMessage(self.errCode.NONE_DB_SCHEMAA)
             return result
@@ -206,6 +214,24 @@ class DatabaseHandler(tornado.web.RequestHandler):
             result.setMessage(self.errCode.NONE_DB_ID)
             return result
         return DatabaseService().editDatabase(data)
+
+    @AdminDecoratorServer.webInterceptorDecorator(SystemConfig.adminHost)
+    def editDatabasePwdById(self):
+        data = json.loads(self.request.body)
+        result = DataResult()
+        if self.commonTool.is_none_str(data["password"]):
+            result.setMessage(self.errCode.NONE_DB_PWD)
+            return result
+        return DatabaseService().editDatabasePwdById(data)
+
+    @AdminDecoratorServer.webInterceptorDecorator(SystemConfig.adminHost)
+    def confirmDatabasePwdById(self):
+        data = json.loads(self.request.body)
+        result = DataResult()
+        if self.commonTool.is_none_str(data["key"]):
+            result.setMessage(self.errCode.NONE_DB_KEY)
+            return result
+        return DatabaseService().confirmDatabasePwdById(data)
 
     @AdminDecoratorServer.webInterceptorDecorator(SystemConfig.adminHost)
     def addTableGroup(self):
@@ -496,8 +522,9 @@ class DatabaseHandler(tornado.web.RequestHandler):
         return DatabaseService().editTableRemarkById(data)
 
     def getViewLinks(self):
-        table_id = self.get_argument("id")
-        return DatabaseService().getViewLinks(table_id)
+        id = self.get_argument("id")
+        link_type = self.get_argument("type")
+        return DatabaseService().getViewLinks(id, link_type)
 
     def addLinkByMatchRule(self):
         data = json.loads(self.request.body)

@@ -145,3 +145,20 @@ class WebApiService(object):
         args.setdefault("applicationId", applicationId)
         args.setdefault("projectId", projectId)
         return self.WebApiDaoInterface.getWebApiInfoByPath(args)
+
+    # 获取无参数接口用,暂时未用service，仅用dao
+    def getWebApiPathForProject(self, projectId, applicationId):
+        args = {}
+        args.setdefault("applicationId", applicationId)
+        args.setdefault("projectId", projectId)
+        logger.info(args)
+        return self.WebApiDaoInterface.getWebApiPathForProject(args)
+
+    # 根据path获取接口详细信息用于自动生成用例 暂时未用service，仅用dao
+    def getWebApiInfosForCase(self, projectId, applicationId,path):
+        args = {}
+        args.setdefault("applicationId", applicationId)
+        args.setdefault("projectId", projectId)
+        args.setdefault("path", path)
+        logger.info(args)
+        return self.WebApiDaoInterface.getWebApiInfosForCase(args)

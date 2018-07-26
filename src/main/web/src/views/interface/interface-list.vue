@@ -68,9 +68,9 @@ export default {
                         filterMultiple: false,
                         filterMethod (value, row) {
                             if (value === 1) {
-                                return row.Method = get;
+                                return row.Method == get;
                             } else if (value === 2) {
-                                return row.Method = post;
+                                return row.Method == post;
                             }
                         }
                 },
@@ -102,28 +102,6 @@ export default {
                                 label: '当前版本',
                                 value: 4
                             }
-                        ],
-                        filterMultiple: false,
-                        filterMethod (value, row) {
-                            if (value === 1) {
-                                return row.DiffType = 1;
-                            } else if (value === 2) {
-                                return row.DiffType = 2;
-                            }
-                        }
-                },
-                {
-                    title: '测试情况',
-                    key: 'DiffType',
-                    filters: [
-                            {
-                                label: '未覆盖',
-                                value: 1
-                            },
-                            {
-                                label: '已覆盖',
-                                value: 2
-                            },
                         ],
                         filterMultiple: false,
                         filterMethod (value, row) {

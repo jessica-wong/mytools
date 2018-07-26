@@ -52,6 +52,9 @@ class UserSQLMapper:
         getUserCountSQL="""
         select count(1) as userCount from user
         """
+        getCurrentUserIsleaderSQL="""
+        select isleader from user where id=%(userId)s
+        """
 
         #SET SQL FOR DAO
         self.data.setdefault("addUser",addUserSQL)
@@ -63,3 +66,4 @@ class UserSQLMapper:
         self.data.setdefault("getUserByUnionid", getUserByUnionidSQL)
         self.data.setdefault("getCurrentUser", getCurrentUserSQL)
         self.data.setdefault("getUserCount", getUserCountSQL)
+        self.data.setdefault("getCurrentUserIsleader", getCurrentUserIsleaderSQL)

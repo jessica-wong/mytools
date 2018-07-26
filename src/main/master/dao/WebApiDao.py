@@ -68,3 +68,17 @@ class WebApiDaoInterface:
         sql = WebApiSQLMapper().getSQL(inspect.stack()[0][3])
         daoOperate = DbBaseHelper(sql, args)
         return daoOperate.read()
+
+    # 获取接口path用
+    def getWebApiPathForProject(self,args):
+        logger.info(inspect.stack()[0][3])
+        sql = WebApiSQLMapper().getSQL(inspect.stack()[0][3])
+        daoOperate = DbBaseHelper(sql, args)
+        return daoOperate.read()
+
+    # 根据path获取接口详细信息用于自动生成用例
+    def getWebApiInfosForCase(self,args):
+        logger.info(inspect.stack()[0][3])
+        sql = WebApiSQLMapper().getSQL(inspect.stack()[0][3])
+        daoOperate = DbBaseHelper(sql, args)
+        return daoOperate.read()

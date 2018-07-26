@@ -32,7 +32,7 @@ export default {
 
                     {
                         title: '事业部',
-                        key: 'department_id'
+                        key: 'department_id_name'
                     },
                     {
                         title: '应用',
@@ -97,14 +97,23 @@ export default {
                     id: 0,
                     departmentId: 0,
                     applicationName: "",
-
+                    applicationDescribe:"",
             };
         },
         getData () {
                 axios.get("/v1/application/getApplicationList").then((res)=>{
                 console.log(res)
                 if(res.data.success){
-                    this.list = res.data.message;
+                    var department_id_name_Enum={
+                        1:"TBU",
+                        2:"IBU",
+                        3:"NBU",
+                        4:"STP"
+                    }
+                    this.list = res.data.message.map(one=>{
+                        one.department_id_name = department_id_name_Enum[one.department_id];
+                        return one;
+                    });
                 }else{
                     this.$Message.error("失败")
                 }
@@ -113,6 +122,7 @@ export default {
         },
         addProduct(){
             this.initapplicationDataModel()
+            this.applicationDataModel.departmentId=1;
             this.$Modal.confirm({
                 onOk: () => {
                        this.addProductNet();
@@ -121,19 +131,21 @@ export default {
                     return h('div',[
                         h('Select', {
                             props: {
-                                value:'TBU' ,
+                                value:1 ,
                                 placeholder: '请选择事业部'
                             },
                             on: {
-                                select: (val) => {
-                                    console.log(val);
+                                'on-change':(val) => {
+                                    console.log(">>>>>>>2223333>>>>>>>>>>",val);
                                     this.applicationDataModel.departmentId = val;
-                                }
+                                },
+
                             }
                             },[
-                            h('Option', {props: {value: 'TBU', key:1}}),
-                            h('Option', {props: {value: 'IBU', key:2}}),
-                            h('Option', {props: {value: 'NBU', key:3}}),
+                            h('Option', {props: {value: 1, label:"TBU"}}),
+                            h('Option', {props: {value: 2, label:"IBU"}}),
+                            h('Option', {props: {value: 3, label:"NBU"}}),
+                            h('Option', {props: {value: 4, label:"STP"}}),
                         ]),
                         h('Input', {
                             props: {
@@ -237,6 +249,7 @@ export default {
             )
         },
         editProduct(){
+            this.applicationDataModel.departmentId=this.applicationDataModel.departmentId=1;
             this.$Modal.confirm({
                 onOk: () => {
                        console.log(this.applicationDataModel)
@@ -247,19 +260,19 @@ export default {
                     return h('div',[
                         h('Select', {
                             props: {
-                                value: 'NBU', 
-                                placeholder: '请选择事业部'
+                                value: this.applicationDataModel.departmentId,
+                                placeholder: '事业部'
                             },
                             on: {
-                                change: (val) => {
-                                    console.log(val)
-                                    this.applicationDataModel.departmentId = 2
+                                "on-change": (val) => {
+                                    this.applicationDataModel.departmentId = val;
+                                    }
                                 }
-                            }
                             },[
-                            h('Option', {props: {value: 'IBU', key:1}}),
-                            h('Option', {props: {value: 'TBU', key:2}}),
-                            h('Option', {props: {value: 'NBU', key:3}}),
+                            h('Option', {props: {value: 1, label:"TBU"}}),
+                            h('Option', {props: {value: 2, label:"IBU"}}),
+                            h('Option', {props: {value: 3, label:"NBU"}}),
+                            h('Option', {props: {value: 4, label:'STP'}}),
                         ]),
                         h('Input', {
                             props: {

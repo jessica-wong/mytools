@@ -121,7 +121,8 @@ class DatabaseSQLMapper:
         deleteDatabaseSQL="""
         delete from db_manage where id = %(id)s;
         """
-        getDatabaseInfoByIdSQL="""
+
+        getDatabaseInfoByIdSQL = """
         select id,name,host,port,username,schema_name,business_unit,product_unit from db_manage where id = %(id)s;
         """
 
@@ -133,16 +134,16 @@ class DatabaseSQLMapper:
         select id,password from db_manage where id = %(id)s;
         """
 
-        getDatabaseListSQL="""
+        getDatabaseListSQL = """
         select id,name,host,port,username,schema_name,business_unit,product_unit from db_manage where business_unit = %(business_unit)s;
         """
 
-        editDatabaseSQL="""
+        editDatabaseSQL = """
         update db_manage set name=%(name)s,host=%(host)s,port=%(port)s,username=%(username)s,schema_name=%(schema_name)s,
         business_unit=%(business_unit)s,product_unit=%(product_unit)s,match_rule=%(match_rule)s where id=%(id)s;
         """
 
-        editDatabasePwdByIdSQL="""
+        editDatabasePwdByIdSQL = """
         update db_manage set password=%(password)s where id=%(id)s;
         """
 
@@ -181,7 +182,7 @@ class DatabaseSQLMapper:
         """
 
         getTableGroupRelationListSQL = """
-        select tgr.*,tg.*,t.e_name,t.c_name from table_group_relation tgr join table_group tg 
+        select tgr.*,tg.*,t.e_name,t.c_name,tg.id 'tg_id' from table_group_relation tgr join table_group tg 
          on tgr.group_id = tg.id join db_table t on t.id = tgr.table_id
          where tg.db_id = %(db_id)s order by tg.sort,t.id;
         """
@@ -290,7 +291,7 @@ class DatabaseSQLMapper:
           left join column_link cl on cl.link_column_id = dc.id
           left join db_column dc2 on dc2.id = cl.src_column_id
           left join db_table dt on dt.id = cl.src_table_id
-          left join db_manage dm on dm.id = dt.db_id where dc.table_id = %(table_id)s and dc2.unlink=0;
+          left join db_manage dm on dm.id = dt.db_id where dc.table_id = %(table_id)s;
         """
 
         getColumnListByTableNameSQL = """
@@ -444,17 +445,17 @@ class DatabaseSQLMapper:
 
         getViewLinksSQL = """
         select sc.e_name 'src_col_name',st.e_name 'src_tb_name',lc.e_name 'link_col_name',lt.e_name 'link_tb_name' from column_link cl
-            join db_column sc on sc.id = cl.src_column_id and sc.unlink = 0
-            join db_table st on st.id = cl.src_table_id
-            join db_column lc on lc.id = cl.link_column_id and lc.unlink = 0
-            join db_table lt on lt.id = cl.link_table_id
+            join db_column sc on sc.id = cl.src_column_id and sc.unlink = 0 and sc.discarded = 0 
+            join db_table st on st.id = cl.src_table_id and st.discarded = 0 
+            join db_column lc on lc.id = cl.link_column_id and lc.unlink = 0 and lc.discarded = 0
+            join db_table lt on lt.id = cl.link_table_id and lt.discarded = 0
          where src_table_id = %(table_id)s and relation_type = 1
         union
         select sc.e_name 'src_col_name',st.e_name 'src_tb_name',lc.e_name 'link_col_name',lt.e_name 'link_tb_name' from column_link cl
-            join db_column sc on sc.id = cl.src_column_id and sc.unlink = 0
-            join db_table st on st.id = cl.src_table_id
-            join db_column lc on lc.id = cl.link_column_id and lc.unlink = 0
-            join db_table lt on lt.id = cl.link_table_id
+            join db_column sc on sc.id = cl.src_column_id and sc.unlink = 0 and sc.discarded = 0 
+            join db_table st on st.id = cl.src_table_id and st.discarded = 0 
+            join db_column lc on lc.id = cl.link_column_id and lc.unlink = 0 and lc.discarded = 0 
+            join db_table lt on lt.id = cl.link_table_id and lt.discarded = 0 
           where relation_type = 1 and src_table_id in
             (select link_table_id from column_link where src_table_id = %(table_id)s and relation_type = 1)
         ;
@@ -465,35 +466,45 @@ class DatabaseSQLMapper:
             (select src_table_id 'table_id', 0  'link_type' from column_link where src_table_id = %(table_id)s and relation_type = 1
         UNION
             select link_table_id 'table_id', 1  'link_type' from column_link cl
-			    join db_column dc on dc.id = cl.src_column_id and dc.unlink = 0 where src_table_id = %(table_id)s and relation_type = 1
+                join db_column dc on dc.id = cl.src_column_id and dc.unlink = 0 where src_table_id = %(table_id)s and relation_type = 1
         UNION
         select link_table_id 'table_id', 2 'link_type' from column_link
         where relation_type = 1 and src_table_id in
             (select link_table_id from column_link cl join db_column dc on dc.id = cl.src_column_id and dc.unlink = 0
-				 where src_table_id = %(table_id)s and relation_type = 1)) as t
-          join db_column dc on dc.table_id = t.table_id and discarded = 0
-          join db_table dt on dt.id = dc.table_id 
+                 where src_table_id = %(table_id)s and relation_type = 1)) as t
+          join db_column dc on dc.table_id = t.table_id and dc.discarded = 0
+          join db_table dt on dt.id = dc.table_id and dt.discarded = 0 
           join db_manage dm on dm.id = dt.db_id where dc.hide = 0 order by dt.id,dc.id;
-        
+
         """
 
-        # """
-        # select DISTINCT(src_table_id),count(*) 'col_height',max(length(dt.e_name)) 'col_width'  from
-        #     (select src_table_id from column_link where src_table_id = 154 and relation_type = 1
-        # UNION
-        # select src_table_id from column_link
-        # where relation_type = 1 and src_table_id in
-        #     (select link_table_id from column_link where src_table_id = 154 and relation_type = 1)) as t
-        #   join db_column dt on dt.table_id = t.src_table_id group by t.src_table_id;
-        # """
+        getViewTableByGroupSQL = """
+        select table_id from table_group_relation tgr where tgr.group_id = %(group_id)s;
+        """
 
+        getViewTableInfoByGroupSQL = """
+        select DISTINCT(dc.id),dt.id, dt.e_name 'name', dc.e_name, dc.type, %(link_type)s 'link_type', dm.name 'db_name',dc.hide, dc.unlink  
+          from db_column dc 
+          join db_table dt on dt.id = dc.table_id  and dt.discarded = 0 and dc.unlink = 0 and dc.discarded = 0
+          join db_manage dm on dm.id = dt.db_id where dc.hide = 0 
+          and dt.id in %(table_ids)s  order by dt.id,dc.id;
+        """
+
+        getViewLinksByGroupSQL = """
+        select link_table_id,sc.e_name 'src_col_name',st.e_name 'src_tb_name',lc.e_name 'link_col_name',lt.e_name 'link_tb_name' from column_link cl
+            join db_column sc on sc.id = cl.src_column_id and sc.unlink = 0 and sc.discarded = 0
+            join db_table st on st.id = cl.src_table_id and st.discarded = 0
+            join db_column lc on lc.id = cl.link_column_id and lc.unlink = 0 and lc.discarded = 0
+            join db_table lt on lt.id = cl.link_table_id and lt.discarded = 0
+         where src_table_id in %(table_ids)s and relation_type = 1
+        """
 
         #SET SQL FOR DAO
-        self.data.setdefault("addDatabase",addDatabaseSQL)
-        self.data.setdefault("deleteDatabase",deleteDatabaseSQL)
-        self.data.setdefault("getDatabaseInfoById",getDatabaseInfoByIdSQL)
-        self.data.setdefault("getDatabaseAllInfoById",getDatabaseAllInfoByIdSQL)
-        self.data.setdefault("getDatabasePwdById",getDatabasePwdByIdSQL)
+        self.data.setdefault("addDatabase", addDatabaseSQL)
+        self.data.setdefault("deleteDatabase", deleteDatabaseSQL)
+        self.data.setdefault("getDatabaseInfoById", getDatabaseInfoByIdSQL)
+        self.data.setdefault("getDatabaseAllInfoById", getDatabaseAllInfoByIdSQL)
+        self.data.setdefault("getDatabasePwdById", getDatabasePwdByIdSQL)
         self.data.setdefault("getDatabaseList", getDatabaseListSQL)
         self.data.setdefault("editDatabase", editDatabaseSQL)
         self.data.setdefault("editDatabasePwdById", editDatabasePwdByIdSQL)
@@ -571,5 +582,8 @@ class DatabaseSQLMapper:
 
         self.data.setdefault("getViewLinks", getViewLinksSQL)
         self.data.setdefault("getViewTableInfo", getViewTableInfoSQL)
+        self.data.setdefault("getViewLinksByGroup", getViewLinksByGroupSQL)
+        self.data.setdefault("getViewTableInfoByGroup", getViewTableInfoByGroupSQL)
+        self.data.setdefault("getViewTableByGroup", getViewTableByGroupSQL)
 
 

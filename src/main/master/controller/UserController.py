@@ -55,6 +55,7 @@ class UserHandler(tornado.web.RequestHandler):
                 'getUserByUnionid' : lambda :self.getUserByUnionid(),
                 'getUserDingDingInfo' : lambda :self.getUserDingDingInfo(),
                 'getCurrentUser': lambda: self.getCurrentUser(),
+                'getCurrentUserIsleader' : lambda :self.getCurrentUserIsleader(),
                 # lambda alias
             }
             self.write(json.dumps(tasks[APIName]().__dict__,cls=CJsonEncoder))
@@ -150,3 +151,8 @@ class UserHandler(tornado.web.RequestHandler):
         useId = self.get_secure_cookie("userId")
         logger.info(useId)
         return UserService().getCurrentUser(useId)
+
+    def getCurrentUserIsleader(self):
+        useId = self.get_secure_cookie("userId")
+        logger.info(useId)
+        return UserService().getCurrentUserIsleader(useId)

@@ -62,11 +62,11 @@
                                             <Input v-model="itemStep.path" placeholder="如：/api/login"></Input>
                                         </FormItem>
                                     </Col>
-                                    <Col span="5">
+                                    <!--<Col span="5">
                                         <FormItem>
-                                            <Button type="primary" @click="selectInterface" >select Interface </Button>
+                                            <Button type="primary" @click="selectInterface(indexStep)" >select Interface </Button>
                                         </FormItem>
-                                    </Col>
+                                    </Col>-->
                                 </Row>
                             </FormItem>
                             <FormItem label="Header" prop="header">
@@ -233,10 +233,9 @@ export default {
                     ]
                 },
             groupList:[],
-            selectInterfaceData:{
-                name:''
-            },
-
+            selectInterfaceData:"",
+            interfaceInfo:[],
+            testCaseId:"",
         };
     },
     methods: {
@@ -246,6 +245,7 @@ export default {
                     ).then((res)=>{
                     if(res.data.success){
                         this.formValidate = res.data.message;
+                        console.log(this.formValidate)
                     }else{
                         this.$Message.error("获取数据失败")
                     }
@@ -266,24 +266,40 @@ export default {
             });
         },
         handleSelectEnv () {
-            return localStorage.tagsList = JSON.stringify(this.envSelected);
+//            return localStorage.tagsList = JSON.stringify(this.envSelected);
+            return localStorage.tagsList = this.envSelected;
         },
         handleCase(){
-            if(this.$route.query.caseId == ""){
-                this.$Message.error('暂时不能发起调试接，请先保存用例');
-                return ;
-            }
-            const data={}
-            data["caseId"]=this.$route.query.caseId
-            data["envName"]=this.handleSelectEnv()
-            axios.post("/v1/case/startTaskBySingleCase",data).then((res)=>{
-                if(res.data.success){
-                    this.$Message.success("触发成功");
-                    this.message = res.data.message;
+            if(this.$route.query.caseId){
+                const data={}
+                data["caseId"]=this.$route.query.caseId
+                data["envName"]=this.handleSelectEnv()
+                axios.post("/v1/task/startTaskBySingleCase",data).then((res)=>{
+                    if(res.data.success){
+                        this.$Message.success("触发成功");
+                        this.message = res.data.message;
+                    }else{
+                        this.$Message.error("触发失败");
+                    }
+                });
+            }else{
+                if (this.testCaseId==""){
+                    this.$Message.error('暂时不能发起调试接，请先保存用例');
+                    return ;
                 }else{
-                    this.$Message.error("触发失败");
+                    const data={}
+                    data["caseId"]=this.testCaseId
+                    data["envName"]=this.handleSelectEnv()
+                    axios.post("/v1/case/startTaskBySingleCase",data).then((res)=>{
+                        if(res.data.success){
+                            this.$Message.success("触发成功");
+                            this.message = res.data.message;
+                        }else{
+                            this.$Message.error("触发失败");
+                        }
+                    });
                 }
-            });
+            }
         },
         handleAddStep () {
             this.indexStep++;
@@ -327,42 +343,55 @@ export default {
         handleSubmit (name) {
             this.$refs[name].validate((valid) => {
                 if (valid) {
-                    if(this.$route.query.caseId != ""){
-                        this.$Message.error('暂时没有编辑接口');
-                        return ;
+                    if(this.$route.query.caseId){
+                        const data= this.formValidate;
+                        data["projectId"] = this.$route.query.projectId;
+                        data["applicationId"] = this.$route.query.applicationId;
+                        data["caseId"] = this.$route.query.caseId;
+                        axios.post("/v1/case/updateTestCase",data).then((res)=>{
+                            if(res.data.success){
+                                this.$Message.success("编辑成功");
+//                                alert(JSON.stringify(res.data.message));
+                            }else{
+                                this.$Message.error("编辑失败");
+                            }
+                        });
+                    }else{
+                        const data= this.formValidate;
+                        data["projectId"] = this.$route.query.projectId;
+                        data["applicationId"] = this.$route.query.applicationId;
+                        axios.post("/v1/case/addTestCase",data).then((res)=>{
+                            if(res.data.success){
+                                this.$Message.success("添加成功");
+                                this.testCaseId = res.data.message
+                                return this.testCaseId
+//                                alert(JSON.stringify(res.data.message));
+                            }else{
+                                this.$Message.error("添加失败");
+                            }
+                        });
                     }
-                    const data= this.formValidate;
-                    data["projectId"] = this.$route.query.projectId;
-                    data["applicationId"] = this.$route.query.applicationId;
-                    axios.post("/v1/case/addTestCase",data).then((res)=>{
-                        if(res.data.success){
-                            this.$Message.success("添加成功");
-                            alert(JSON.stringify(res.data.message));
-                        }else{
-                            this.$Message.error("添加数据失败");
-                        }
-                    });
                 } else {
-                    this.$Message.error('Fail!');
+                    this.$Message.error('请添加有效的name!');
                 }
             })
         },
-        selectInterface(){
+        selectInterface(indexStep){
             this.$Modal.confirm({
                 onOk: () => {
-                       this.selectInterfaceNet();
+                       this.selectInterfaceNet(indexStep);
                     },
                     render: (h) => {
                     return h('div',[
                         h('Input', {
                             props: {
-                                value: this.selectInterfaceData.name,
+                                value: this.selectInterfaceData,
                                 autofocus: true,
                                 placeholder: '接口名称'
                             },
                             on: {
                                 input: (val) => {
-                                    this.selectInterfaceData.name = val;
+                                    this.selectInterfaceData = val;
                                 }
                             }
                         }),
@@ -370,7 +399,19 @@ export default {
                 }
             })
         },
-        selectInterfaceNet(){
+        selectInterfaceNet(indexStep){
+            axios.get("/v1/webapi/getWebApiInfoByPath",{params:{projectId:this.$route.query.projectId,applicationId:this.$route.query.applicationId,Path:this.selectInterfaceData}}
+                ).then((res)=>{
+                console.log(res)
+                if(res.data.success){
+                    this.interfaceInfo=res.data.message;
+                    this.formValidate.itemsSteps[indexStep].method=res.data.message[0]["Method"];
+                    this.formValidate.itemsSteps[path].method=res.data.message[0]["Path"];
+                    this.formValidate.itemsSteps[content_type].params=res.data.message[0]["Produces"];
+                }else{
+                    this.$Message.error("获取数据失败")
+                }
+            });
         },
     },
     created () {

@@ -33,7 +33,7 @@ export default {
                 {
                     title: '操作',
                     key: 'action',
-                    width: 350,
+                    width: 400,
                     align: 'center',
                     render: (h, params) => {
                         return h('div', [
@@ -62,7 +62,9 @@ export default {
                                 },
                                 on: {
                                     click: () => {
-                                        this.createCase(params.index)
+                                        this.createCaseData.projectId=params.row.id
+                                        this.createCaseData.applicationId=this.$route.query.applicationId
+                                        this.createCase()
                                     }
                                 }
                             }, '生成用例')
@@ -71,12 +73,16 @@ export default {
                 }
             ],
             data: [],
-
+            createCaseData:{
+                projectId:"",
+                applicationId:""
+            },
         }
     },
     methods: {
         getProjectListByApplicationId(){
-            return axios.get("/v1/project/getProjectListByApplicationId",{params:{applicationId: this.$route.query.applicationId}}).then((res)=>{
+            return axios.get("/v1/project/getProjectListByApplicationId",
+            {params:{applicationId: this.$route.query.applicationId}}).then((res)=>{
                 console.log(res)
                 if(res.data.success){
                     this.data = res.data.message;
@@ -86,7 +92,14 @@ export default {
             })
         },
         createCase(){
-
+            axios.post("/v1/case/createTestCase",this.createCaseData).then((res)=>{
+                console.log(res)
+                if(res.data.success){
+                    this.$Message.success("创建成功")
+                }else{
+                    this.$Message.error("创建失败")
+                }
+            })
         }
     },
     created () {

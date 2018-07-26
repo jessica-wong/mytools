@@ -36,7 +36,6 @@ class DatabaseService(object):
 
     @AdminDecoratorServer.execImplDecorator()
     def deleteDatabase(self, args):
-        # todo 删除关联关系
         self.deleteColumn(args)
         self.deleteTableGroupRelationByDB(args)
         self.deleteTableGroupByDB(args)
@@ -63,7 +62,6 @@ class DatabaseService(object):
 
     @AdminDecoratorServer.execImplDecorator()
     def getDatabaseList(self, business_unit):
-        # todo business_unit=2,定死了
         args = {}
         args.setdefault("business_unit", business_unit)
         return self.DatabaseDaoInterface.getDatabaseList(args)
@@ -159,6 +157,7 @@ class DatabaseService(object):
             #  先转为list
             group=list(group)
             group_dict.setdefault("title", group[0]["name"])
+            group_dict.setdefault("id", group[0]["tg_id"])
             group_dict.setdefault("children", [{"title":l["e_name"]+"（"+l["c_name"]+"）","id":l["id"],"table_id":l["table_id"]} for l in group])
             # 用于设置默认展开
             if index == 0:
@@ -496,10 +495,10 @@ class DatabaseService(object):
                 column_info = dao_db.getSynchronizeColumn(args, **db_src).getMessage()
                 columnDict = {}
                 columnDict["table_id"] = table_id
-                e_name = column_info[0]["COLUMN_NAME"]
+                e_name = j["COLUMN_NAME"]
                 columnDict["e_name"] = e_name
-                columnDict["type"] = column_info[0]["COLUMN_TYPE"]
-                remark = column_info[0]["COLUMN_COMMENT"]
+                columnDict["type"] = j["COLUMN_TYPE"]
+                remark = j["COLUMN_COMMENT"]
                 columnDict["remark"] = remark
                 if e_name[0:2] == "~~":
                     columnDict["discarded"] = 1
@@ -703,8 +702,6 @@ class DatabaseService(object):
                            for i in column_info_src]
         column_info = sorted(column_info, key=lambda x: x["name"])
         column_info_src = sorted(column_info_src, key=lambda x: x["name"])
-        logger.info(column_info)
-        logger.info(column_info_src)
         flag_column = False
         column_content = []
         update_column_type = []
@@ -772,45 +769,95 @@ class DatabaseService(object):
         return db_src
 
     @AdminDecoratorServer.execImplDecorator()
-    def getViewLinks(self, table_id):
+    def getViewLinks(self, id, link_type):
         result = DataResult()
-        args = {}
-        args.setdefault("table_id", table_id)
-        tb_info = self.getTableInfoById(table_id).getMessage()
-        tb_name = tb_info[0]["e_name"]
+        if int(link_type) == 1:
+            table_id = id
+            args = {}
+            args.setdefault("table_id", table_id)
+            tb_info = self.getTableInfoById(table_id).getMessage()
+            type_name = tb_info[0]["e_name"]
 
-        link_info = self.DatabaseDaoInterface.getViewLinks(args)
-        infos = link_info.getMessage()
-        links = []
-        for i in infos:
-            link = {}
-            link.setdefault("source", i["src_tb_name"])
-            link.setdefault("target", i["link_tb_name"])
-            link.setdefault("value", "{} > {}".format(i["src_col_name"],i["link_col_name"]))
-            links.append(link)
+            link_info = self.DatabaseDaoInterface.getViewLinks(args)
+            infos = link_info.getMessage()
+            links = []
+            for i in infos:
+                link = {}
+                link.setdefault("source", i["src_tb_name"])
+                link.setdefault("target", i["link_tb_name"])
+                link.setdefault("value", "{} > {}".format(i["src_col_name"], i["link_col_name"]))
+                links.append(link)
 
-        datus = []
-        table_info = self.DatabaseDaoInterface.getViewTableInfo(args)
-        table_group = itertools.groupby(table_info.getMessage(), key=lambda x: x["name"])
-        for key, group in table_group:
-            data = {}
-            group = list(group)
-            db = group[0]["db_name"]
-            link_type = group[0]["link_type"]
-            data.setdefault("t_name", key)
-            data.setdefault("db_name", db)
-            data.setdefault("link_type", link_type)
-            cols = [g['e_name'] for g in group]
-            data.setdefault('info',cols)
-            datus.append(data)
+            datus = []
+            table_info = self.DatabaseDaoInterface.getViewTableInfo(args)
+            table_group = itertools.groupby(table_info.getMessage(), key=lambda x: x["name"])
+            for key, group in table_group:
+                data = {}
+                group = list(group)
+                db = group[0]["db_name"]
+                link_type = group[0]["link_type"]
+                data.setdefault("t_name", key)
+                data.setdefault("db_name", db)
+                data.setdefault("link_type", link_type)
+                cols = [g['e_name'] for g in group]
+                data.setdefault('info', cols)
+                datus.append(data)
+
+        elif int(link_type) == 2:
+            group_id = id
+            group_info = self.getTableGroupInfoById(group_id).getMessage()
+            type_name = group_info[0]["name"]
+            table_list = []
+            tables = self.getViewTableByGroup(group_id).getMessage()
+            tables = [t["table_id"] for t in tables]
+            table_list.extend(tables)
+
+            datus = []
+            for level in range(1,10):
+                if tables != []:
+                    table_info = self.getLinkTable(tables, level)
+                    logger.info(table_info)
+                    tables = [t["dt.id"] for t in table_info]
+                    table_list.extend(tables)
+
+                    logger.info(tables)
+
+                    table_group = itertools.groupby(table_info, key=lambda x: x["name"])
+                    for key, group in table_group:
+                        data = {}
+                        group = list(group)
+                        db = group[0]["db_name"]
+                        link_type = group[0]["link_type"]
+                        data.setdefault("t_name", key)
+                        data.setdefault("db_name", db)
+                        data.setdefault("link_type", link_type)
+                        cols = [g['e_name'] for g in group]
+                        data.setdefault('info', cols)
+                        datus.append(data)
+
+            link_info = self.getViewLinksByGroup(table_list)
+            infos = link_info.getMessage()
+            links = []
+            for i in infos:
+                link = {}
+                link.setdefault("source", i["src_tb_name"])
+                link.setdefault("target", i["link_tb_name"])
+                link.setdefault("value", "{} > {}".format(i["src_col_name"], i["link_col_name"]))
+                links.append(link)
 
         message = {}
         message.setdefault("links", links)
         message.setdefault("data", datus)
-        message.setdefault("tb_name", tb_name)
+        message.setdefault("type_name", type_name)
         result.setMessage(message)
         result.setSuccess(True)
         return result
+
+    def getLinkTable(self, table_id, link_level):
+        if table_id != []:
+            return self.getViewTableInfoByGroup(table_id, link_level).getMessage()
+        else:
+            return []
 
     def addLinkByMatchRule(self, args):
         result = DataResult()
@@ -876,3 +923,21 @@ class DatabaseService(object):
         args = {}
         args.setdefault('db_id', db_id)
         return self.DatabaseDaoInterface.getIdColumnListByTableName(args)
+
+    def getViewTableByGroup(self, group_id):
+        args = {}
+        args.setdefault("group_id", group_id)
+        return self.DatabaseDaoInterface.getViewTableByGroup(args)
+
+    def getViewTableInfoByGroup(self, table_id, link_level):
+        if link_level > 3:
+            link_level = 3
+        args = {}
+        args.setdefault("table_ids", table_id)
+        args.setdefault("link_type", link_level)
+        return self.DatabaseDaoInterface.getViewTableInfoByGroup(args)
+
+    def getViewLinksByGroup(self, table_id):
+        args = {}
+        args.setdefault("table_ids", table_id)
+        return self.DatabaseDaoInterface.getViewLinksByGroup(args)

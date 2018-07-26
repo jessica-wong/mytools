@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+# -*- coding: utf-8 -*-
 
 import json
 import traceback
@@ -146,16 +147,13 @@ class ApplicationHandler(tornado.web.RequestHandler):
         return ApplicationService().getApplicationCountByProject(projectId)
 
     def getApplicationById(self):
-        Id=self.get_arguments("id")
+        Id=self.get_argument("id")
         return ApplicationService().getApplicationById(Id)
 
     def editApplication(self):
-        id = self.get_arguments("id")
-        applicationDescribe=self.get_arguments("applicationDescribe")
-        applicationName=self.get_arguments("applicationName")
-        departmentId=self.get_arguments("departmentId")
-        return ApplicationService().editApplication(id,applicationDescribe,applicationName,departmentId)
+        data = json.loads(self.request.body)
+        return ApplicationService().editApplication(data)
 
     def deleteApplication(self):
-        id = self.get_arguments("id")
-        return ApplicationService().deleteApplication(id)
+        data = json.loads(self.request.body)
+        return ApplicationService().deleteApplication(data)

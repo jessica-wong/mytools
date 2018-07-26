@@ -92,7 +92,8 @@ export default {
                 userPasswd: [
                     { required: true, message: '密码不能为空', trigger: 'blur' }
                 ]
-            }
+            },
+            isleader:""
         };
     },
     methods: {
@@ -133,7 +134,9 @@ export default {
                 console.log(res)
                 if(res.data.success){
                     Cookies.set('user', this.form.userName);
-                    if (this.form.userName === 'admin') {
+                    this.isleader=this.userAuth().then(()=>{
+                        console.log(this.isleader)
+                    if (this.isleader === 1) {
                         Cookies.set('access', 0);
                     } else {
                         Cookies.set('access', 1);
@@ -141,6 +144,18 @@ export default {
                     this.$router.push({
                         name: 'home_index'
                     });
+                    })
+                }else{
+                    this.$Message.error("失败")
+                }
+            });
+        },
+        userAuth(){
+            return axios.get("/v1/user/getCurrentUserIsleader"
+            ).then((res)=>{
+                console.log(res)
+                if(res.data.success){
+                    this.isleader=res.data.message[0]["isleader"]
                 }else{
                     this.$Message.error("失败")
                 }
