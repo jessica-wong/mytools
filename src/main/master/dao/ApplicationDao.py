@@ -97,6 +97,8 @@ class ApplicationDaoInterface:
         logger.info(inspect.stack()[0][3])
         sql = ApplicationSQLMapper().getSQL(inspect.stack()[0][3])
         daoOperate = DbBaseHelper(sql, args)
+        logger.info(sql)
+        logger.info(args)
         return daoOperate.write()
 
     def deleteApplication(self,args):

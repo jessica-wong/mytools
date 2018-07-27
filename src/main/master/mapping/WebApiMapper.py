@@ -35,11 +35,11 @@ class WebApiSQLMapper:
         where w.ApplicationId = %(applicationId)s and w.ProjectId=%(projectId)s
         """
         getWebApiRequestSQL="""
-        select * from webapi_parameter where WebApiId=%(Id)s and ParameterType=1 and `In`="body"
+        select * from webapi_parameter where WebApiId=%(Id)s and ParameterType=1
         """
-        getWebApiRequestQuerySQL="""
-        select * from webapi_parameter where WebApiId=%(Id)s and ParameterType=1 and `In`="query"
-        """
+        # getWebApiRequestQuerySQL="""
+        # select * from webapi_parameter where WebApiId=%(Id)s and ParameterType=1 and `In`="query"
+        # """
         getWebApiResponseSQL="""
         select * from webapi_parameter where WebApiId=%(Id)s and ParameterType=2
         """
@@ -47,7 +47,14 @@ class WebApiSQLMapper:
         select w.*,wd.DiffType from webapi w left join webapi_diff wd on w.OperationId = wd.OperationId
         where w.ApplicationId = %(applicationId)s and w.ProjectId=%(projectId)s and w.Path=%(Path)s
         """
-
+        getWebApiPathForProjectSQL="""
+        select Path from webapi where ApplicationId = %(applicationId)s and ProjectId=%(projectId)s
+        """
+        getWebApiInfosForCaseSQL="""
+        select * from webapi left join webapi_parameter on webapi.Id= webapi_parameter.webApiId
+        where webapi.ApplicationId = %(applicationId)s and webapi.ProjectId=%(projectId)s 
+        and webapi.Path=%(Path)s 
+        """
         #SET SQL FOR DAO
         self.data.setdefault("addWebApi",addWebApiSQL)
         self.data.setdefault("deleteWebApi",deleteWebApiSQL)
@@ -56,6 +63,8 @@ class WebApiSQLMapper:
         self.data.setdefault("getWebApiInfoById", getWebApiInfoByIdSQL)
         self.data.setdefault("getWebApiList", getWebApiListSQL)
         self.data.setdefault("getWebApiRequest", getWebApiRequestSQL)
-        self.data.setdefault("getWebApiRequestQuery", getWebApiRequestQuerySQL)
+        # self.data.setdefault("getWebApiRequestQuery", getWebApiRequestQuerySQL)
         self.data.setdefault("getWebApiResponse", getWebApiResponseSQL)
         self.data.setdefault("getWebApiInfoByPath", getWebApiInfoByPathSQL)
+        self.data.setdefault("getWebApiPathForProject", getWebApiPathForProjectSQL)
+        self.data.setdefault("getWebApiInfosForCase", getWebApiInfosForCaseSQL)

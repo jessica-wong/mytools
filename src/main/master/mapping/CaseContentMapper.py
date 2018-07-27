@@ -35,10 +35,10 @@ class CaseContentSQLMapper:
         %(type)s,%(sqlContent)s)
         """
         deleteTestContentByContentIdSQL="""
-        delete from casecontent where id = %(contentId)s
+        delete from case_content where id = %(contentId)s
         """
         deleteTestContentByCaseIdSQL="""
-        delete from casecontent where caseid = %(caseId)s
+        delete from case_content where case_id = %(caseId)s
         """
         updateTestContentSQL="""
         update casecontent set step_name=%(stepName)s,step=%(step)s,interfaceid=%(interfaceId)s,url=%(url)s,
@@ -46,11 +46,12 @@ class CaseContentSQLMapper:
         sqlcontent=%(sqlContent)s where id = %(contentId)s
         """
         getContentInfosByCaseIdSQL="""
-        select * from casecontent where caseid = %(caseId)s order by step 
+        select * from case_content where case_id = %(caseId)s order by execute_step 
         """
         getContentInfosByContentIdSQL="""
-        select * from casecontent where id = %(contentId)s
+        select * from case_content where id = %(contentId)s
         """
+
         #SET SQL FOR DAO
         self.data.setdefault("addCaseContent",addCaseContentSQL)
         self.data.setdefault("deleteTestContentByContentId",deleteTestContentByContentIdSQL)

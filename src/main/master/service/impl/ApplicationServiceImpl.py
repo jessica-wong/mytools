@@ -78,15 +78,9 @@ class ApplicationService(object):
         args.setdefault("Id", Id)
         return self.ApplicationDaoInterface.getApplicationById(args)
 
-    def editApplication(self,id,applicationDescribe,applicationName,departmentId):
-        args={}
-        args.setdefault("id", id)
-        args.setdefault("applicationDescribe", applicationDescribe)
-        args.setdefault("applicationName", applicationName)
-        args.setdefault("departmentId", departmentId)
+    def editApplication(self,args):
+
         return self.ApplicationDaoInterface.editApplication(args)
 
-    def deleteApplication(self,id):
-        args = {}
-        args.setdefault("id", id)
+    def deleteApplication(self,args):
         return self.ApplicationDaoInterface.deleteApplication(args)

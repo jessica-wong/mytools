@@ -1,21 +1,5 @@
 # -*- coding: utf-8 -*-
 
-#CREATE TABLE `caseresult` (
-#`id` int(11) NOT NULL auto_increment,
-#`instanceid` int(11) NOT NULL,
-#`caseid` int(11) NOT NULL,
-#`casename` varchar(255) NOT NULL,
-#`runtime` int(11) DEFAULT NULL,
-#`status` varchar(255) NOT NULL COMMENT 'wait,run,stop,fail,success,timeout,error,skip',
-#`exec_start` datetime DEFAULT NULL,
-#`exec_end` datetime DEFAULT NULL,
-#`message` text DEFAULT NULL,
-#`remarks` varchar(255) DEFAULT NULL,
-#`gmt_create` datetime DEFAULT NULL,
-#`gmt_modify` timestamp default CURRENT_TIMESTAMP on update CURRENT_TIMESTAMP,
-#PRIMARY KEY(`id`)
-#) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8;
-
 class CaseResultSQLMapper:
 
     def __init__(self):
@@ -30,20 +14,19 @@ class CaseResultSQLMapper:
     def __setSQL(self):
         #WRITE SQL FOR API
         addCaseResultSQL="""
-        insert into caseresult (instanceid,caseid,casename,runtime,status,
-        exec_start,exec_end,remarks,message,gmt_create) values (%(instanceid)s,%(caseid)s,%(casename)s,
-        %(runtime)s,%(status)s,%(exec_start)s,%(exec_end)s,%(remarks)s,%(messaga)s,now())
+        insert into case_result (instance_id,case_id,case_name,runtime,exe_status,
+        exec_start,message,gmt_create) values (%(instanceId)s,%(caseId)s,%(caseName)s,
+        %(runtime)s,%(exe_status)s,%(exec_start)s,%(message)s,now())
         """
         deleteCaseResultSQL="""
-        delete from caseresult where id = %(caseId)s
+        delete from case_result where id = %(caseId)s
         """
         updateCaseResultSQL="""
-        update caseresult set runtime=%(runtime)s,status=%(status)s,exec_start=%(exec_start)s,
-        exec_end=%(exec_end)s,remarks=%(remarks)s,message=%(message)s where caseid=%(caseId)s
-        and instanceid= %(instanceId)s
+        update case_result set runtime=%(runtime)s,status=%(status)s,exec_start=%(exec_start)s,
+        remarks=%(remarks)s,message=%(message)s where case_id=%(caseId)s and instance_id= %(instanceId)s
         """
         getCaseResultInfoByCaseIdSQL="""
-        select * from testcase where projectid = %(projectId)s and type = %(type)s
+        select * from case_result where case_id = %(caseId)s
         """
         getCaseResultInfosByConditionSQL="""
         select * from testcase where projectid = %(projectId)s and type = %(type)s

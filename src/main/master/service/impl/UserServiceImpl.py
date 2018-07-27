@@ -62,3 +62,9 @@ class UserService(object):
 
     def getUserCount(self):
         return self.userDaoInterface.getUserCount()
+
+    def getCurrentUserIsleader(self,userId):
+        args = {}
+        args.setdefault("userId", userId)
+        logger.info(args)
+        return self.userDaoInterface.getCurrentUserIsleader(args)

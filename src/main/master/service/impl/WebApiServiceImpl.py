@@ -113,22 +113,26 @@ class WebApiService(object):
                 data["Summary"]=item["Summary"]
                 data["DiffType"] = item["DiffType"]
                 Id={"Id":item["Id"]}
-                data["Type"]="query"
+                # data["Type"]="query"
                 data_request=self.WebApiDaoInterface.getWebApiRequest(Id)
                 if data_request.getSuccess():
-                    #
-                    data["Schema_request"]=[]
-                    for res in data_request.getMessage():
-                        if res["In"] =="query":
-                            tmpJson ={}
-                            tmpJson["name"]=res["Name"]
-                            tmpJson["required"] =res["Required"]
-                            tmpJson["defaultValue"] =res["Schema"]
-                            data["Schema_request"].append(tmpJson)
+                    data["Schema_request"] = []
+                    if len(data_request.getMessage())>0:
+                        if data_request.getMessage()[0]["In"]=="query":
+                            for res in data_request.getMessage():
+                                if res["Required"] ==1:
+                                    data["Type"] = "query"
+                                    tmpJson ={}
+                                    tmpJson["name"]=res["Name"]
+                                    tmpJson["defaultValue"] =res["Schema"]
+                                    tmpJson["describe"] = res["Description"]
+                                    data["Schema_request"].append(tmpJson)
                         else:
                             data["Type"] = "body"
                             data["Schema_request"] = data_request.getMessage()[0]["Schema"]
-                            break
+                    else:
+                        data["Type"] = ""
+                        data["Schema_request"] = []
                     logger.info(data["Schema_request"])
                 data_response=self.WebApiDaoInterface.getWebApiResponse(Id)
                 if data_response.getSuccess():
@@ -145,3 +149,20 @@ class WebApiService(object):
         args.setdefault("applicationId", applicationId)
         args.setdefault("projectId", projectId)
         return self.WebApiDaoInterface.getWebApiInfoByPath(args)
+
+    # 获取无参数接口用,暂时未用service，仅用dao
+    def getWebApiPathForProject(self, projectId, applicationId):
+        args = {}
+        args.setdefault("applicationId", applicationId)
+        args.setdefault("projectId", projectId)
+        logger.info(args)
+        return self.WebApiDaoInterface.getWebApiPathForProject(args)
+
+    # 根据path获取接口详细信息用于自动生成用例 暂时未用service，仅用dao
+    def getWebApiInfosForCase(self, projectId, applicationId,path):
+        args = {}
+        args.setdefault("applicationId", applicationId)
+        args.setdefault("projectId", projectId)
+        args.setdefault("path", path)
+        logger.info(args)
+        return self.WebApiDaoInterface.getWebApiInfosForCase(args)

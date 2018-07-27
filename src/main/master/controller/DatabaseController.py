@@ -93,8 +93,8 @@ class DatabaseHandler(tornado.web.RequestHandler):
                 'addDatabase' : lambda : self.addDatabase(),
                 'deleteDatabase':lambda :self.deleteDatabase(),
                 'editDatabase':lambda :self.editDatabase(),
-                'editDatabasePwdById':lambda :self.editDatabasePwdById(),
-                'confirmDatabasePwdById':lambda :self.confirmDatabasePwdById(),
+                'editDatabasePwdById': lambda: self.editDatabasePwdById(),
+                'confirmDatabasePwdById': lambda: self.confirmDatabasePwdById(),
                 'addTableGroup': lambda: self.addTableGroup(),
                 'deleteTableGroup': lambda: self.deleteTableGroup(),
                 'editTableGroup': lambda: self.editTableGroup(),
@@ -175,7 +175,7 @@ class DatabaseHandler(tornado.web.RequestHandler):
         return DatabaseService().getDatabaseInfoById(db_id)
 
     def getDatabasePwdById(self):
-        db_id= self.get_argument("id")
+        db_id = self.get_argument("id")
         return DatabaseService().getDatabasePwdById(db_id)
 
     def getDatabaseList(self):
@@ -522,8 +522,9 @@ class DatabaseHandler(tornado.web.RequestHandler):
         return DatabaseService().editTableRemarkById(data)
 
     def getViewLinks(self):
-        table_id = self.get_argument("id")
-        return DatabaseService().getViewLinks(table_id)
+        id = self.get_argument("id")
+        link_type = self.get_argument("type")
+        return DatabaseService().getViewLinks(id, link_type)
 
     def addLinkByMatchRule(self):
         data = json.loads(self.request.body)

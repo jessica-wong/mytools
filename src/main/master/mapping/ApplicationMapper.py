@@ -84,7 +84,8 @@ class ApplicationSQLMapper:
         select * from application where id=%(Id)s
         """
         editApplicationSQL="""
-        update application set application_describe=%(applicationDescribe)s, name=%(applicationName)s,department_id=%(departmentId)s where id=%(id)s
+        update application set application_describe=%(applicationDescribe)s, 
+        name=%(applicationName)s,department_id=%(departmentId)s where id=%(id)s
         """
         deleteApplicationSQL="""
         delete from application where id=%(id)s

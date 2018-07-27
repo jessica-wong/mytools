@@ -20,6 +20,8 @@ from src.main.master.controller.LoginController import LoginHandler
 from src.main.master.controller.ApplicationController import ApplicationHandler
 from src.main.master.controller.WebApiController import WebApiHandler
 from src.main.master.controller.CommomController import CommonHandler
+from src.main.master.controller.TaskCenterController import TaskCenterHandler
+from src.main.master.controller.TagController import TagHandler
 
 def start_server():
 
@@ -47,6 +49,8 @@ def start_server():
               (r"/v1/application/(.*)",ApplicationHandler),
               (r"/v1/webapi/(.*)",WebApiHandler),
               (r"/v1/common/(.*)", CommonHandler),
+              (r"/v1/task/(.*)", TaskCenterHandler),
+              (r"/v1/tag/(.*)", TagHandler),
               ],**settings)
 
     http_server = tornado.httpserver.HTTPServer(app,xheaders=True)

@@ -38,6 +38,25 @@ class TaskCenterService(object):
     def __init__(self):
         pass
 
+    #1
+    @AdminDecoratorServer.execImplDecorator()
+    def sendTask(self):
+        args={}
+        args.setdefault("limit",SystemConfig.maxThreadSize)
+        dataResult = TaskMetaqInfoDaoInterface().getWaitingTaskInfos(args)
+        if dataResult.getSuccess():
+            logger.info("send Task start:{0}".format(dataResult.getMessage()))
+            #目前支持local执行,后期可支持远程consumer或者jenkins
+            requests = threadpool.makeRequests(self.__sendTaskJob,dataResult.getMessage())
+            for req in requests:
+                time.sleep(0.1)
+                pool.putRequest(req)
+            pool.wait()
+            return dataResult
+        else:
+            logger.error("get waiting task failure:{0}".format(dataResult.getMessage()))
+            return dataResult
+
     #2
     @staticmethod
     @AdminDecoratorServer.execImplDecorator()
@@ -277,25 +296,6 @@ class TaskCenterService(object):
             return tmplJson
         return eval("Presult."+tmplString)
 
-    #1
-    @AdminDecoratorServer.execImplDecorator()
-    def sendTask(self):
-        args={}
-        args.setdefault("limit",SystemConfig.maxThreadSize)
-        dataResult = TaskMetaqInfoDaoInterface().getWaitingTaskInfos(args)
-        if dataResult.getSuccess():
-            logger.info("send Task start:{0}".format(dataResult.getMessage()))
-            #目前支持local执行,后期可支持远程consumer或者jenkins
-            requests = threadpool.makeRequests(self.__sendTaskJob,dataResult.getMessage())
-            for req in requests:
-                time.sleep(0.1)
-                pool.putRequest(req)
-            pool.wait()
-            return dataResult
-        else:
-            logger.error("get waiting task failure:{0}".format(dataResult.getMessage()))
-            return dataResult
-
     @AdminDecoratorServer.execImplDecorator()
     def stopTask(self,args):
         pass
@@ -308,37 +308,244 @@ class TaskCenterService(object):
     def execTask(self,args):
         pass
 
+    # def startTaskBySingleCase(self,args):
+    #     message=[]
+    #     contents = CaseContentDaoInterface().getContentInfosByCaseId(args)
+    #     if contents.getSuccess():
+    #         for content in contents.getMessage():
+    #             if int(content["method"]) == 0:
+    #                 method = "GET"
+    #             else:
+    #                 method= "POST"
+    #             if int(content["content_type"]) ==0:
+    #                 format ="application/json"
+    #             else:
+    #                 format="application/x-www-form-urlencoded"
+    #             if content["requests_params"] is None or content["requests_params"] =="":
+    #                 params={}
+    #             else:
+    #                 params = json.loads(content["requests_params"])
+    #             logger.error(content["webapi_path"])
+    #             logger.error(method)
+    #             logger.error(format)
+    #             logger.error(params)
+    #             requestUtil = RequestBase(url=content["ip_url"]+content["webapi_path"], method=method, format=format,params=params)
+    #             response = requestUtil.route()
+    #             logger.error(response.getMessage())
+    #             logger.error(response.getSuccess())
+    #             tmpArgs={}
+    #             tmpArgs[content["step_name"]]= response.getMessage()
+    #             message.append(tmpArgs)
+    #         logger.error(message)
+    #         contents.setSuccess(True)
+    #         contents.setMessage(message)
+    #     return contents
+
     @AdminDecoratorServer.execImplDecorator()
     def startTaskBySingleCase(self,args):
         message=[]
+        logger.info(args)
         contents = CaseContentDaoInterface().getContentInfosByCaseId(args)
+
         if contents.getSuccess():
             for content in contents.getMessage():
+
                 if int(content["method"]) == 0:
                     method = "GET"
                 else:
                     method= "POST"
-                if int(content["format"]) ==0:
-                    format ="application/x-www-form-urlencoded"
+                if int(content["content_type"]) ==0:
+                    contentType ="application/json"
+                    if content["requests_params"] is None or content["requests_params"] == "":
+                        data = {}
+                    else:
+                        data = eval(content["requests_params"])
+                        data = json.dumps(data)
                 else:
-                    format="application/json"
-                if content["request_params"] is None or content["request_params"] =="":
-                    params={}
+                    contentType="application/x-www-form-urlencoded"
+                    if content["requests_params"] is None or content["requests_params"] == "":
+                        data = {}
+                    else:
+                        data = eval(content["requests_params"])
+                        data = data
+
+                if len(args["envName"])>0:
+                    environments = EnvironmentDaoInterface().getEnvironmentInfoByName(args)
+                    environment=environments.getMessage()[0]
+                    logger.info(environment["pre_url"])
+                    if environment["pre_url"] is None or environment["pre_url"]=="":
+                        if content["webapi_path"] is None or content["webapi_path"] == "":
+                            contents.setSuccess(False)
+                            contents.setMessage("缺少请求接口path")
+                            return contents
+                        else:
+                            if content["ip_url"] is None or content["ip_url"]=="":
+                                contents.setSuccess(False)
+                                contents.setMessage("缺少请求地址")
+                                return contents
+                            else:
+                                url=content["ip_url"]+content["webapi_path"]
+                    else:
+                        if content["webapi_path"] is None or content["webapi_path"] == "":
+                            contents.setSuccess(False)
+                            contents.setMessage("缺少请求接口path")
+                            return contents
+                        else:
+                            url = environment["pre_url"] + content["webapi_path"]
+
+                    if environment["headers"] is None or environment["headers"]=="":
+                        if content["headers"] is None or content["headers"]=="":
+                            headers={}
+                            headers.setdefault("content-type", contentType)
+                        else:
+                            header = content["headers"]
+                            headers = eval(header)
+                            headers.setdefault("content-type", contentType)
+                    else:
+                        header=environment["headers"]
+                        headers = eval(header)
+                        headers.setdefault("content-type", contentType)
                 else:
-                    params = json.loads(content["request_params"])
-                logger.error(content["url"])
-                logger.error(method)
-                logger.error(format)
-                logger.error(params)
-                requestUtil = RequestBase(url=content["url"], method=method, format=format,params=params)
-                response = requestUtil.route()
-                logger.error(response.getMessage())
-                logger.error(response.getSuccess())
+                    if content["webapi_path"] is None or content["webapi_path"] == "":
+                        contents.setSuccess(False)
+                        contents.setMessage("缺少请求接口path")
+                        return contents
+                    else:
+                        if content["ip_url"] is None or content["ip_url"] == "":
+                            contents.setSuccess(False)
+                            contents.setMessage("缺少请求地址")
+                            return contents
+                        else:
+                            url = content["ip_url"] + content["webapi_path"]
+                    if content["headers"] is None or content["headers"]=="":
+                        headers={}
+                        headers.setdefault("content-type", contentType)
+                    else:
+                        header=content["headers"]
+                        headers=eval(header)
+                        headers.setdefault("content-type", contentType)
+
+                requestUtil = RequestBase(url=url, method=method,data=data,headers=headers)
+                response = requestUtil.httpRequest(url=url, method=method,data=data,headers=headers)
                 tmpArgs={}
-                tmpArgs[content["step_name"]]= response.getMessage()
+                tmpArgs[content["step_name"]]= response.text
                 message.append(tmpArgs)
             logger.error(message)
             contents.setSuccess(True)
             contents.setMessage(message)
+            contents.setStatusCode(200)
+        else:
+            contents.setSuccess(False)
+            contents.setMessage("获取用例内容失败")
         return contents
 
+    def startTaskByBatchCase(self,args):
+        logger.info(args)
+        dataResult = DataResult()
+        getCaseIds = TestCaseDaoInterface().getCaseIds(args)
+        if getCaseIds.getSuccess():
+            if len(getCaseIds.getMessage()) > 0:
+                caseIds = getCaseIds.getMessage()
+                for caseId in caseIds:
+                    # caseId.setdefault("envName", args["envName"])
+                    # dataResult = self.startTaskBySingleCase(caseId)
+                    contents = CaseContentDaoInterface().getContentInfosByCaseId(caseId)
+                    caseResult = {}
+                    caseName = TestCaseDaoInterface().getCaseInfosById(caseId)
+                    caseResult.setdefault("caseName",caseName.getMessage()[0]["name"])
+                    caseResult.setdefault("caseId", caseId["caseId"])
+                    caseResult.setdefault("instanceId", 0)
+                    message = []
+                    exec_start = time.time()
+                    caseResult.setdefault("exec_start", exec_start)
+                    if contents.getSuccess():
+                        for content in contents.getMessage():
+                            if int(content["method"]) == 0:
+                                method = "GET"
+                            else:
+                                method = "POST"
+                            if int(content["content_type"]) == 0:
+                                contentType = "application/json"
+                                if content["requests_params"] is None or content["requests_params"] == "":
+                                    data = {}
+                                else:
+                                    data = eval(content["requests_params"])
+                                    data = json.dumps(data)
+                            else:
+                                contentType = "application/x-www-form-urlencoded"
+                                if content["requests_params"] is None or content["requests_params"] == "":
+                                    data = {}
+                                else:
+                                    data = eval(content["requests_params"])
+                                    data = data
+                            if len(args["envName"]) > 0:
+                                environments = EnvironmentDaoInterface().getEnvironmentInfoByName(args)
+                                environment = environments.getMessage()[0]
+                                if environment["pre_url"] is None or environment["pre_url"] == "":
+                                    if content["webapi_path"] is None or content["webapi_path"] == "":
+                                        logger.info("缺少接口path")
+                                        continue
+                                    else:
+                                        if content["ip_url"] is None or content["ip_url"] == "":
+                                            logger.info("缺少请求地址")
+                                            continue
+                                        else:
+                                            url = content["ip_url"] + content["webapi_path"]
+                                else:
+                                    if content["webapi_path"] is None or content["webapi_path"] == "":
+                                        logger.info("缺少接口path")
+                                        continue
+                                    else:
+                                        url = environment["pre_url"] + content["webapi_path"]
+
+                                if environment["headers"] is None or environment["headers"] == "":
+                                    if content["headers"] is None or content["headers"] == "":
+                                        headers = {}
+                                        headers.setdefault("content-type", contentType)
+                                    else:
+                                        header = content["headers"]
+                                        headers = eval(header)
+                                        headers.setdefault("content-type", contentType)
+                                else:
+                                    header = environment["headers"]
+                                    headers = eval(header)
+                                    headers.setdefault("content-type", contentType)
+                            else:
+                                if content["webapi_path"] is None or content["webapi_path"] == "":
+                                    logger.info("缺少接口path")
+                                    continue
+                                else:
+                                    if content["ip_url"] is None or content["ip_url"] == "":
+                                        logger.info("缺少请求地址")
+                                        continue
+                                    else:
+                                        url = content["ip_url"] + content["webapi_path"]
+                                if content["headers"] is None or content["headers"] == "":
+                                    headers = {}
+                                    headers.setdefault("content-type", contentType)
+                                else:
+                                    header = content["headers"]
+                                    headers = eval(header)
+                                    headers.setdefault("content-type", contentType)
+                            requestUtil = RequestBase(url=url, method=method, data=data, headers=headers)
+                            response = requestUtil.httpRequest(url=url, method=method, data=data, headers=headers)
+                            tmpArgs = {}
+                            tmpArgs[content["step_name"]] = response.text
+                            tmpArgs["status_code"]=response.status_code
+                            tmpArgs["elapsed_ms"]=response.elapsed.microseconds / 1000.0
+                            message.append(tmpArgs)
+                            if response.status_code == 200:
+                                caseResult.setdefault("exe_status", "success")
+                            else:
+                                caseResult.setdefault("exe_status", "fail")
+                        caseResult.setdefault("message",str(message))
+                        caseResult.setdefault("runtime", (time.time()-exec_start)*1000)
+                        logger.info(caseResult)
+                        createCaseResult=CaseResultDaoInterface().addCaseResult(caseResult)
+                        logger.info(createCaseResult.getSuccess())
+                        logger.info(createCaseResult.getMessage())
+            else:
+                dataResult.setMessage("项目中无可执行的用例")
+        else:
+            dataResult.setMessage("获取用例失败")
+        return dataResult

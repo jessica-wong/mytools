@@ -23,7 +23,17 @@
                 </div>
             </Card>
         </Row>
+        <Modal
+            v-model="modalAddTag"
+            title="为接口添加标签"
+            @on-ok="addWebApiTag"
+            @on-cancel="cancel">
+            <Select v-model="tagSelected" @on-change="handleSelectTag" placeholder="请选择标签，可为空">
+                <Option v-for="item in tagList" :value="item.tag_id_name" :key="item.value">{{ item.tag_id_name }}</Option>
+            </Select>
+        </Modal>
     </div>
+
 </template>
 
 <script>
@@ -36,6 +46,11 @@ export default {
     data () {
         return {
             listColumns: [
+                {
+                    type: 'selection',
+                    width: 60,
+                    align: 'center'
+                },
                 {
                     type: 'expand',
                     width: 50,
@@ -63,9 +78,9 @@ export default {
                         filterMultiple: false,
                         filterMethod (value, row) {
                             if (value === 1) {
-                                return row.Method = get;
+                                return row.Method == get;
                             } else if (value === 2) {
-                                return row.Method = post;
+                                return row.Method == post;
                             }
                         }
                 },
@@ -108,31 +123,9 @@ export default {
                         }
                 },
                 {
-                    title: '测试情况',
-                    key: 'DiffType',
-                    filters: [
-                            {
-                                label: '未覆盖',
-                                value: 1
-                            },
-                            {
-                                label: '已覆盖',
-                                value: 2
-                            },
-                        ],
-                        filterMultiple: false,
-                        filterMethod (value, row) {
-                            if (value === 1) {
-                                return row.DiffType = 1;
-                            } else if (value === 2) {
-                                return row.DiffType = 2;
-                            }
-                        }
-                },
-                {
                     title: '操作',
                     key: 'action',
-                    width: 150,
+//                    width: 300,
                     align: 'center',
                     render: (h, params) => {
                         return h('div', [
@@ -146,14 +139,11 @@ export default {
                                 },
                                 on: {
                                     click: () => {
-                                        let query = {projectId:this.$route.query.id,interfaceId: params.row.id}
-                                        this.$router.push({
-                                            name:'interface-edit',
-                                            query:query
-                                        })
+                                        this.tagData.apiId=params.row.Id
+                                        this.modalAddTag = true
                                     }
                                 }
-                            }, '编辑'),
+                            }, '添加标签'),
                             h('Button', {
                                 props: {
                                     type: 'error',
@@ -161,11 +151,11 @@ export default {
                                 },
                                 on: {
                                     click: () => {
-                                        this.removeInterfaceData.interfaceId = params.row.id
+                                        this.removeInterfaceData.interfaceId = params.row.Id
                                         this.removeInterface()
                                     }
                                 }
-                            }, '确认')
+                            }, '确认变更')
                         ]);
                     }
                 }
@@ -173,6 +163,15 @@ export default {
             list: [],
             searchValue:"",
             formItem:{},
+            modalAddTag:false,
+            tagList:[],
+            tagSelected:[],
+            tagData:{
+                apiId:"",
+                tagId:"",
+                projectId:"",
+                applicationId:""
+            },
         };
     },
     methods: {
@@ -180,12 +179,11 @@ export default {
             this.$router.push({path:"/interface/interface-edit",query:{projectId:this.$route.query.projectId,applicationId:this.$route.query.applicationId}})
         },
         getWebapiList(){
-            axios.get("/v1/webapi/getWebApiList",{params:{projectId:this.$route.query.projectId,applicationId:this.$route.query.applicationId}}
+            axios.get("/v1/webapi/getWebApiList",
+            {params:{projectId:this.$route.query.projectId,applicationId:this.$route.query.applicationId}}
                 ).then((res)=>{
                 console.log(res)
-                console.log(this.$route.query.id)
                 if(res.data.success){
-                    this.list = []
                     this.list = res.data.message;
                 }else{
                     this.$Message.error("获取数据失败");
@@ -226,9 +224,61 @@ export default {
                 }
             })
         },
+        handleSelectAll (status) {
+            this.$refs.selection.selectAll(status);
+        },
+        getWebApiTag(index){
+            axios.get("/v1/tag/getTagsForApi"
+            ).then((res)=>{
+                //console.log(res)
+                if(res.data.success){
+//                      this.$Message.success("成功")
+                      var tag_id_name_Enum={
+                          1:"新增",
+                          2:"编辑",
+                          3:"删除",
+                      }
+                      this.tagList = res.data.message.map(one=>{
+                          one.tag_id_name = tag_id_name_Enum[one.id];
+                          return one;
+                      });
+
+                }else{
+                    this.$Message.error("失败")
+                }
+            }
+            )
+        },
+        handleSelectTag () {
+            if (this.tagSelected=="新增"){
+                return localStorage.tagsList = 1;
+            }else if (this.tagSelected=="编辑"){
+                return localStorage.tagsList = 2;
+            }else{
+                return localStorage.tagsList = 3;
+            }
+        },
+        addWebApiTag(){
+            this.tagData.projectId=this.$route.query.projectId
+            this.tagData.applicationId=this.$route.query.applicationId
+            this.tagData.tagId = this.handleSelectTag()
+            axios.post("/v1/tag/addWebApiTag",this.tagData
+                ).then((res)=>{
+                console.log(res)
+                if(res.data.success){
+                    this.$Message.success("添加标签成功");
+                }else{
+                    this.$Message.error("添加标签失败");
+                }
+            })
+        },
+        cancel () {
+            this.$Message.info('Clicked cancel');
+        },
     },
     created () {
         this.getWebapiList();
+        this.getWebApiTag();
     }
 };
 </script>

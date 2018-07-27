@@ -39,6 +39,7 @@ class TestCaseHandler(tornado.web.RequestHandler):
                 'getCaseInfosByCondition' : lambda : self.getCaseInfosByCondition(),
                 'getCaseInfosById': lambda: self.getCaseInfosById(),
                 'getCaseList' : lambda : self.getCaseList(),
+                'searchCaseByName' : lambda : self.searchCaseByName(),
                 # lambda alias
             }
             self.write(json.dumps(tasks[APIName]().__dict__,cls=CJsonEncoder))
@@ -62,7 +63,8 @@ class TestCaseHandler(tornado.web.RequestHandler):
                 'addTestCase' : lambda : self.addTestCase(),
                 'deleteTestCase':lambda :self.deleteTestCase(),
                 'updateTestCase': lambda : self.updateTestCase(),
-                'startTaskBySingleCase': lambda :self.startTaskBySingleCase()
+                'startTaskBySingleCase': lambda :self.startTaskBySingleCase(),
+                'createTestCase': lambda :self.createTestCase(),
             }
             self.write(json.dumps(tasks[APIName]().__dict__,cls=CJsonEncoder))
         except:
@@ -79,7 +81,8 @@ class TestCaseHandler(tornado.web.RequestHandler):
 
     @AdminDecoratorServer.webInterceptorDecorator(SystemConfig.adminHost)
     def addTestCase(self):
-        return TestCaseService().addTestCase(json.loads(self.request.body))
+        userId = self.get_secure_cookie("userId")
+        return TestCaseService().addTestCase(json.loads(self.request.body),userId)
 
     def getCaseInfosById(self):
         caseId = self.get_argument('caseId')
@@ -91,7 +94,8 @@ class TestCaseHandler(tornado.web.RequestHandler):
 
     @AdminDecoratorServer.webInterceptorDecorator(SystemConfig.adminHost)
     def updateTestCase(self):
-        return TestCaseService().updateTestCase(json.loads(self.request.body))
+        userId = self.get_secure_cookie("userId")
+        return TestCaseService().updateTestCase(json.loads(self.request.body),userId)
 
     def getCaseInfosByCondition(self):
         projectId = self.get_argument('projectId')
@@ -100,14 +104,20 @@ class TestCaseHandler(tornado.web.RequestHandler):
         limit = self.get_argument('limit')
         return TestCaseService().getCaseInfosByCondition(projectId,groupId,offset,limit)
 
-    @AdminDecoratorServer.webInterceptorDecorator(SystemConfig.adminHost)
-    def startTaskBySingleCase(self):
-        return TaskCenterService().startTaskBySingleCase(json.loads(self.request.body))
+    # @AdminDecoratorServer.webInterceptorDecorator(SystemConfig.adminHost)
+    # def startTaskBySingleCase(self):
+    #     return TaskCenterService().startTaskBySingleCase(json.loads(self.request.body))
 
     def getCaseList(self):
         projectId = self.get_argument('projectId')
         applicationId=self.get_argument('applicationId')
-        return TestCaseService().getCaseList(projectId,applicationId)
+        return TestCaseService().getCaseList(applicationId,projectId)
+
+    def searchCaseByName(self):
+        searchValue=self.get_argument("searchValue")
+        projectId = self.get_argument('projectId')
+        applicationId = self.get_argument('applicationId')
+        return TestCaseService().searchCaseByName(searchValue,projectId,applicationId)
 
     def createTestCase(self):
-        return
+        return TestCaseService().syncCreateTestCase(json.loads(self.request.body))

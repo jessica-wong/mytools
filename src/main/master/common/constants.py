@@ -23,18 +23,4 @@ class DbConfig:
 
 
 
-""""
-cd /d H:\shareDDD
-python build.py 
 
-cd H:\shareDDD\src\main\master
-python server.py
-
-
---------------------
-
-cd /d H:\shareDDD\src\main\web
-npm run dev
-
-
-"""

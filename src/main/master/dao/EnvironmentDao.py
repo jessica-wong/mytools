@@ -51,3 +51,9 @@ class EnvironmentDaoInterface:
         sql = EnvironmentSQLMapper().getSQL(inspect.stack()[0][3])
         daoOperate = DbBaseHelper(sql,args)
         return daoOperate.read()
+
+    def getEnvironmentInfoByName(self,args):
+        logger.info(inspect.stack()[0][3])
+        sql = EnvironmentSQLMapper().getSQL(inspect.stack()[0][3])
+        daoOperate = DbBaseHelper(sql, args)
+        return daoOperate.read()
