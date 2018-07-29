@@ -31,9 +31,13 @@ class CaseResultSQLMapper:
         getCaseResultInfosByConditionSQL="""
         select * from testcase where projectid = %(projectId)s and type = %(type)s
         """
+        getCaseResultInfosByInstanceIdSQL="""
+        select * from case_result where instance_id=%(instanceId)s
+        """
         #SET SQL FOR DAO
         self.data.setdefault("addCaseResult",addCaseResultSQL)
         self.data.setdefault("deleteCaseResult",deleteCaseResultSQL)
         self.data.setdefault("updateCaseResult",updateCaseResultSQL)
         self.data.setdefault("getCaseResultInfoByCaseId",getCaseResultInfoByCaseIdSQL)
         self.data.setdefault("getCaseResultInfosByCondition", getCaseResultInfosByConditionSQL)
+        self.data.setdefault("getCaseResultInfosByInstanceId", getCaseResultInfosByInstanceIdSQL)

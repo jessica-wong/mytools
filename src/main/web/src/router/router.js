@@ -74,6 +74,7 @@ export const otherRouter = {
         { path: 'test-manage/interface-case-version', title: '用例版本', name: 'interface-case-version', component: resolve => { require(['@/views/test-manage/interface-case-version.vue'], resolve); } },
         { path: 'test-manage/interface-case-list', title: '用例列表', name: 'interface-case-list', component: resolve => { require(['@/views/test-manage/interface-case-list.vue'], resolve); } },
         { path: 'test-manage/interface-case-edit', title: '用例编辑', name: 'interface-case-edit', component: resolve => { require(['@/views/test-manage/interface-case-edit.vue'], resolve); } },
+        { path: 'task/task-result', title: '任务结果', name: 'task-result', component: resolve => { require(['@/views/task/task-result.vue'], resolve); } },
     ]
 };
 

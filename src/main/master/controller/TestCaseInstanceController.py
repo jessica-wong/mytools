@@ -35,7 +35,9 @@ class TestCaseInstanceHandler(tornado.web.RequestHandler):
         dataResult = DataResult()
         try:
             tasks = {
-                'getTestInstanceInfoById' : lambda : self.getTestInstanceInfoById()
+                'getTaskInstanceInfoById' : lambda : self.getTaskInstanceInfoById(),
+                'getTaskInstanceInfos': lambda: self.getTaskInstanceInfos()
+
                 # lambda alias
             }
             self.write(json.dumps(tasks[APIName]().__dict__,cls=CJsonEncoder))
@@ -72,9 +74,12 @@ class TestCaseInstanceHandler(tornado.web.RequestHandler):
             except:
                 pass
 
-    def getTestInstanceInfoById(self):
+    def getTaskInstanceInfoById(self):
         instanceId = self.get_argument('instanceId')
         return TestCaseInstanceService().getTestInstanceInfoById(instanceId)
+
+    def getTaskInstanceInfos(self):
+        return TestCaseInstanceService().getTaskInstanceInfos()
 
     @AdminDecoratorServer.webInterceptorDecorator(SystemConfig.adminHost)
     def addTestInstance(self):

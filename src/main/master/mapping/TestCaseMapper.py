@@ -92,7 +92,7 @@ class TestCaseSQLMapper:
         where test_case.project_id = 1 and test_case.application_id =1 and case_content.webapi_path=%(Path)s
         """
         getCaseIdsSQL="""
-        select id as caseId from test_case where project_id=%(projectId)s and application_id=%(applicationId)s
+        select id as caseId,name from test_case where project_id=%(projectId)s and application_id=%(applicationId)s
         """
 
         #SET SQL FOR DAO

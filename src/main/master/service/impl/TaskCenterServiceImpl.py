@@ -11,6 +11,7 @@ import socket
 from jinja2 import Template
 from src.main.master.common.constants import SystemConfig
 from src.main.master.util.logUtil.log import Log
+from src.main.master.util.commonUtil.commonToolUtil import CommonTool
 from src.main.master.entity.DataResult import DataResult
 from src.main.master.dao.TaskMetaqInfoDao import TaskMetaqInfoDaoInterface
 from src.main.master.core.AdminDecorator import AdminDecoratorServer
@@ -25,37 +26,19 @@ from operator import attrgetter
 from src.main.master.util.requestUtil.httpRequestUtil import RequestBase
 from src.main.master.util.dbUtil.dbBaseHelper import DbBaseHelper
 from src.main.master.util.assertUtil.assertUtil import AssertInstance
+from src.main.master.service.impl.AssertServiceImpl import AssertService
 
 #set log
 logger = Log('TaskCenterServiceImpl')
 logger.write_to_file(SystemConfig.logPathPrefix+"TaskCenterServiceImpl.log")
 
 #global
-pool = threadpool.ThreadPool(10)
+pool = threadpool.ThreadPool(20)
 
 class TaskCenterService(object):
 
     def __init__(self):
         pass
-
-    #1
-    @AdminDecoratorServer.execImplDecorator()
-    def sendTask(self):
-        args={}
-        args.setdefault("limit",SystemConfig.maxThreadSize)
-        dataResult = TaskMetaqInfoDaoInterface().getWaitingTaskInfos(args)
-        if dataResult.getSuccess():
-            logger.info("send Task start:{0}".format(dataResult.getMessage()))
-            #目前支持local执行,后期可支持远程consumer或者jenkins
-            requests = threadpool.makeRequests(self.__sendTaskJob,dataResult.getMessage())
-            for req in requests:
-                time.sleep(0.1)
-                pool.putRequest(req)
-            pool.wait()
-            return dataResult
-        else:
-            logger.error("get waiting task failure:{0}".format(dataResult.getMessage()))
-            return dataResult
 
     #2
     @staticmethod
@@ -184,7 +167,7 @@ class TaskCenterService(object):
         Presult ={}
         statusFlag =True
         if contentResult.getSuccess() and len(contentResult.getMessage()) > 0:
-            for content in sorted(ontentResult.getMessage(), key=attrgetter('step')):
+            for content in sorted(contentResult.getMessage(), key=attrgetter('step')):
                 #TODO "DATARESULT" + STEP
                 response=None
                 #request api
@@ -296,16 +279,69 @@ class TaskCenterService(object):
             return tmplJson
         return eval("Presult."+tmplString)
 
+    #1
+    @AdminDecoratorServer.execImplDecorator()
+    def sendTask(self):
+        args={}
+        args.setdefault("limit",SystemConfig.maxThreadSize)
+        dataResult = TaskMetaqInfoDaoInterface().getWaitingTaskInfos(args)
+        if dataResult.getSuccess():
+            logger.info("send Task start:{0}".format(dataResult.getMessage()))
+            #目前支持local执行,后期可支持远程consumer或者jenkins
+            requests = threadpool.makeRequests(self.__sendTaskJob,dataResult.getMessage())
+            for req in requests:
+                time.sleep(0.1)
+                pool.putRequest(req)
+            pool.wait()
+            return dataResult
+        else:
+            logger.error("get waiting task failure:{0}".format(dataResult.getMessage()))
+            return dataResult
+
     @AdminDecoratorServer.execImplDecorator()
     def stopTask(self,args):
         pass
 
     @AdminDecoratorServer.execImplDecorator()
     def startTask(self,args):
-        pass
+        # 暂时不支持套件
+        args.setdefault("suiteName","")
+        args.setdefault("suiteId",0)
+        # 排队中
+        args.setdefault("status",0)
+        # 手工触发
+        args.setdefault("triggerType",0)
+        return TestCaseInstanceDaoInterface().addTestInstance(args)
+
 
     @AdminDecoratorServer.execImplDecorator()
     def execTask(self,args):
+        pass
+
+    @AdminDecoratorServer.execImplDecorator()
+    def crontabTask(self):
+        logger.info("crontab start in time(#{time})".format(time=time.ctime()))
+        args={}
+        args.setdefault("limit",SystemConfig.maxThreadSize)
+        pendingTasks = TestCaseInstanceDaoInterface().getPengdingInstanceInfos(args)
+        logger.info(pendingTasks.getMessage())
+        logger.info(pendingTasks.getSuccess())
+        for pendingTask in list(pendingTasks.getMessage()):
+            # 回写master 实例状态  排队--->运行中
+            logger.info(str(pendingTask))
+            logger.info(type(pendingTask))
+            logger.info("Test task [{instanceId}] running...".format(instanceId=pendingTask["instanceId"]))
+
+            pendingTask["status"] = 1
+            TestCaseInstanceDaoInterface().updateTestInstanceStatus(pendingTask)
+        requests = threadpool.makeRequests(self.startTaskByBatchCase,pendingTasks.getMessage())
+        for req in requests:
+            time.sleep(0.1)
+            pool.putRequest(req)
+        pool.wait()
+
+    @AdminDecoratorServer.execImplDecorator()
+    def queryTask(self):
         pass
 
     # def startTaskBySingleCase(self,args):
@@ -441,47 +477,78 @@ class TaskCenterService(object):
 
     def startTaskByBatchCase(self,args):
         logger.info(args)
+        isSuccess = True
         dataResult = DataResult()
-        getCaseIds = TestCaseDaoInterface().getCaseIds(args)
-        if getCaseIds.getSuccess():
-            if len(getCaseIds.getMessage()) > 0:
-                caseIds = getCaseIds.getMessage()
-                for caseId in caseIds:
-                    # caseId.setdefault("envName", args["envName"])
-                    # dataResult = self.startTaskBySingleCase(caseId)
-                    contents = CaseContentDaoInterface().getContentInfosByCaseId(caseId)
-                    caseResult = {}
-                    caseName = TestCaseDaoInterface().getCaseInfosById(caseId)
-                    caseResult.setdefault("caseName",caseName.getMessage()[0]["name"])
-                    caseResult.setdefault("caseId", caseId["caseId"])
-                    caseResult.setdefault("instanceId", 0)
-                    message = []
-                    exec_start = time.time()
-                    caseResult.setdefault("exec_start", exec_start)
-                    if contents.getSuccess():
-                        for content in contents.getMessage():
-                            if int(content["method"]) == 0:
-                                method = "GET"
-                            else:
-                                method = "POST"
-                            if int(content["content_type"]) == 0:
-                                contentType = "application/json"
-                                if content["requests_params"] is None or content["requests_params"] == "":
-                                    data = {}
+        try:
+            getCases = TestCaseDaoInterface().getCaseIds(args)
+            if getCases.getSuccess():
+                if len(getCases.getMessage()) > 0:
+                    cases = getCases.getMessage()
+                    for case in cases:
+                        # caseId.setdefault("envName", args["envName"])
+                        # dataResult = self.startTaskBySingleCase(caseId)
+                        contents = CaseContentDaoInterface().getContentInfosByCaseId(case)
+                        caseResult = {}
+                        #caseName = TestCaseDaoInterface().getCaseInfosById(caseId)
+                        caseResult.setdefault("caseName",case["name"])
+                        caseResult.setdefault("caseId", case["caseId"])
+                        caseResult.setdefault("instanceId", args.get("instanceId"))
+                        message = []
+                        exec_start = time.time()
+                        caseResult.setdefault("exec_start", exec_start)
+                        if contents.getSuccess():
+                            for content in contents.getMessage():
+                                if int(content["method"]) == 0:
+                                    method = "GET"
                                 else:
-                                    data = eval(content["requests_params"])
-                                    data = json.dumps(data)
-                            else:
-                                contentType = "application/x-www-form-urlencoded"
-                                if content["requests_params"] is None or content["requests_params"] == "":
-                                    data = {}
+                                    method = "POST"
+                                if int(content["content_type"]) == 0:
+                                    contentType = "application/json"
+                                    if content["requests_params"] is None or content["requests_params"] == "":
+                                        data = {}
+                                    else:
+                                        data = eval(content["requests_params"])
+                                        data = json.dumps(data)
                                 else:
-                                    data = eval(content["requests_params"])
-                                    data = data
-                            if len(args["envName"]) > 0:
-                                environments = EnvironmentDaoInterface().getEnvironmentInfoByName(args)
-                                environment = environments.getMessage()[0]
-                                if environment["pre_url"] is None or environment["pre_url"] == "":
+                                    contentType = "application/x-www-form-urlencoded"
+                                    if content["requests_params"] is None or content["requests_params"] == "":
+                                        data = {}
+                                    else:
+                                        data = eval(content["requests_params"])
+                                        data = data
+                                if len(args["envName"]) > 0:
+                                    environments = EnvironmentDaoInterface().getEnvironmentInfoByName(args)
+                                    environment = environments.getMessage()[0]
+                                    if environment["pre_url"] is None or environment["pre_url"] == "":
+                                        if content["webapi_path"] is None or content["webapi_path"] == "":
+                                            logger.info("缺少接口path")
+                                            continue
+                                        else:
+                                            if content["ip_url"] is None or content["ip_url"] == "":
+                                                logger.info("缺少请求地址")
+                                                continue
+                                            else:
+                                                url = content["ip_url"] + content["webapi_path"]
+                                    else:
+                                        if content["webapi_path"] is None or content["webapi_path"] == "":
+                                            logger.info("缺少接口path")
+                                            continue
+                                        else:
+                                            url = environment["pre_url"] + content["webapi_path"]
+
+                                    if environment["headers"] is None or environment["headers"] == "":
+                                        if content["headers"] is None or content["headers"] == "":
+                                            headers = {}
+                                            headers.setdefault("content-type", contentType)
+                                        else:
+                                            header = content["headers"]
+                                            headers = eval(header)
+                                            headers.setdefault("content-type", contentType)
+                                    else:
+                                        header = environment["headers"]
+                                        headers = eval(header)
+                                        headers.setdefault("content-type", contentType)
+                                else:
                                     if content["webapi_path"] is None or content["webapi_path"] == "":
                                         logger.info("缺少接口path")
                                         continue
@@ -491,14 +558,6 @@ class TaskCenterService(object):
                                             continue
                                         else:
                                             url = content["ip_url"] + content["webapi_path"]
-                                else:
-                                    if content["webapi_path"] is None or content["webapi_path"] == "":
-                                        logger.info("缺少接口path")
-                                        continue
-                                    else:
-                                        url = environment["pre_url"] + content["webapi_path"]
-
-                                if environment["headers"] is None or environment["headers"] == "":
                                     if content["headers"] is None or content["headers"] == "":
                                         headers = {}
                                         headers.setdefault("content-type", contentType)
@@ -506,46 +565,61 @@ class TaskCenterService(object):
                                         header = content["headers"]
                                         headers = eval(header)
                                         headers.setdefault("content-type", contentType)
-                                else:
-                                    header = environment["headers"]
-                                    headers = eval(header)
-                                    headers.setdefault("content-type", contentType)
-                            else:
-                                if content["webapi_path"] is None or content["webapi_path"] == "":
-                                    logger.info("缺少接口path")
-                                    continue
-                                else:
-                                    if content["ip_url"] is None or content["ip_url"] == "":
-                                        logger.info("缺少请求地址")
-                                        continue
+                                requestUtil = RequestBase(url=url, method=method, data=data, headers=headers)
+                                response = requestUtil.httpRequest(url=url, method=method, data=data, headers=headers)
+                                logger.info(response.text)
+                                logger.info(response.status_code)
+                                tmpArgs = {}
+                                tmpArgs[content["step_name"]] = response.text
+                                tmpArgs["status_code"]=response.status_code
+                                tmpArgs["elapsed_ms"]=response.elapsed.microseconds / 1000.0
+                                message.append(tmpArgs)
+                                #本处代码只是为了区别返回值为json还是view
+                                try:
+                                    data = json.loads(response.text)
+                                except Exception as e:
+                                    logger.warn(e)
+                                    data = response.text
+
+                                if response.status_code == 200:
+                                    #此处需要验证用户自定义断言
+                                    contentJson={"contentId":content["id"]}
+                                    assertInfos = AssertDaoInterface().getAssertInfosByContentId(contentJson)
+                                    isFailed = False
+                                    if assertInfos.getSuccess():
+                                        for assertInfo in assertInfos.getMessage():
+                                            actual = CommonTool().render(template=assertInfo["actual"],data=data,status=response.status_code)
+                                            if not AssertService().routeAssert(actual,assertInfo["expect"],assertInfo["assert_type"]):
+                                                isFailed =True
+                                    if not isFailed:
+                                        caseResult.setdefault("exe_status", "success")
                                     else:
-                                        url = content["ip_url"] + content["webapi_path"]
-                                if content["headers"] is None or content["headers"] == "":
-                                    headers = {}
-                                    headers.setdefault("content-type", contentType)
+                                        caseResult.setdefault("exe_status", "fail")
                                 else:
-                                    header = content["headers"]
-                                    headers = eval(header)
-                                    headers.setdefault("content-type", contentType)
-                            requestUtil = RequestBase(url=url, method=method, data=data, headers=headers)
-                            response = requestUtil.httpRequest(url=url, method=method, data=data, headers=headers)
-                            tmpArgs = {}
-                            tmpArgs[content["step_name"]] = response.text
-                            tmpArgs["status_code"]=response.status_code
-                            tmpArgs["elapsed_ms"]=response.elapsed.microseconds / 1000.0
-                            message.append(tmpArgs)
-                            if response.status_code == 200:
-                                caseResult.setdefault("exe_status", "success")
-                            else:
-                                caseResult.setdefault("exe_status", "fail")
-                        caseResult.setdefault("message",str(message))
-                        caseResult.setdefault("runtime", (time.time()-exec_start)*1000)
-                        logger.info(caseResult)
-                        createCaseResult=CaseResultDaoInterface().addCaseResult(caseResult)
-                        logger.info(createCaseResult.getSuccess())
-                        logger.info(createCaseResult.getMessage())
+                                    caseResult.setdefault("exe_status", "fail")
+                                    isSuccess = False
+                            caseResult.setdefault("message",str(message))
+                            caseResult.setdefault("runtime", (time.time()-exec_start)*1000)
+                            logger.info(caseResult)
+                            createCaseResult=CaseResultDaoInterface().addCaseResult(caseResult)
+                            logger.info(createCaseResult.getSuccess())
+                            logger.info(createCaseResult.getMessage())
+                else:
+                    dataResult.setMessage("项目中无可执行的用例")
+                    isSuccess = False
             else:
-                dataResult.setMessage("项目中无可执行的用例")
-        else:
-            dataResult.setMessage("获取用例失败")
-        return dataResult
+                dataResult.setMessage("获取用例失败")
+                isSuccess = False
+            if isSuccess:
+                args["status"] = 2
+            else:
+                args["status"] = 3
+            TestCaseInstanceDaoInterface().updateTestInstanceStatus(args)
+            return dataResult
+        except Exception as err:
+            logger.info(err)
+            args["status"] =4
+            TestCaseInstanceDaoInterface().updateTestInstanceStatus(args)
+            dataResult.setMessage("程序运行异常")
+            return dataResult
+

@@ -1,10 +1,8 @@
 # -*- coding: utf-8 -*-
 
-import json
-import traceback
+
 from src.main.master.common.constants import SystemConfig
 from src.main.master.util.logUtil.log import Log
-from src.main.master.entity.DataResult import DataResult
 from src.main.master.dao.TestCaseInstanceDao import TestCaseInstanceDaoInterface
 from src.main.master.core.AdminDecorator import AdminDecoratorServer
 
@@ -19,8 +17,8 @@ class TestCaseInstanceService(object):
 
     @AdminDecoratorServer.execImplDecorator()
     def addTestInstance(self,args):
-        if "trigger_type" not in args:
-            args.setdefault("trigger_type",None)
+        if "triggerType" not in args:
+            args.setdefault("triggerType",0)
         return self.testCaseInstanceDaoInterface.addTestInstance(args)
 
     @AdminDecoratorServer.execImplDecorator()
@@ -40,3 +38,8 @@ class TestCaseInstanceService(object):
         logger.error("instanceId [{}] is invalid".format(args.get("instanceId")))
         dataResult.setMessage("instanceId [{}] is invalid".format(args.get("instanceId")))
         return dataResult
+
+    @AdminDecoratorServer.execImplDecorator()
+    def getTaskInstanceInfos(self,):
+        return self.testCaseInstanceDaoInterface.getTaskInstanceInfos({})
+

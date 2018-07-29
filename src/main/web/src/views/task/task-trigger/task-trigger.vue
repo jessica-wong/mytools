@@ -18,28 +18,32 @@
 </template>
 
 <script>
+import axios  from 'axios';
 export default {
     name: 'task-trigger',
     data () {
         return {
             taskColumns: [
                 {
-                    type: 'index',
-                    title: '序号',
-                    width: 60
+                    title: '任务ID',
+                    key: 'id',
+                    align: 'center'
                 },
                 {
-                    title: '任务ID',
-                    key: 'task_id',
-                    align: 'center'
+                    title: '项目名称',
+                    key: 'project_name'
+                },
+                {
+                    title: '应用名称',
+                    key: 'application_name'
                 },
                 {
                     title: '状态',
                     key: 'status',
                     render: (h, params) => {
                         const row = params.row;
-                        const color = row.status === 1 ? 'blue' : row.status === 2 ? 'green' : 'red';
-                        const text = row.status === 1 ? '构建中' : row.status === 2 ? '构建完成' : '构建失败';
+                        const color = row.status === 1 ? 'blue' : row.status === 2 ? 'green' : row.status === 0 ? 'grey' : 'red';
+                        const text = row.status === 1 ? '运行' : row.status === 2 ? '成功' : row.status === 0 ? '排队' : '失败';
 
                         return h('Tag', {
                             props: {
@@ -50,12 +54,22 @@ export default {
                     }
                 },
                 {
-                    title: '用户',
-                    key: 'user_name'
+                    title: '开始时间',
+                    key: 'build_start',
+                    width: 100
                 },
                 {
-                    title: '详情',
-                    key: 'show_more',
+                    title: '结束时间',
+                    key: 'build_end',
+                    width: 100
+                },
+                {
+                    title: '用户',
+                    key: 'create_username'
+                },
+                {
+                    title: '操作',
+                    key: 'details',
                     align: 'center',
                     render: (h, params) => {
                         return h('Button', {
@@ -65,10 +79,10 @@ export default {
                             },
                             on: {
                                 click: () => {
-                                    let argu = { order_id: params.row.order_id };
+                                    let query = { instanceId: params.row.id };
                                     this.$router.push({
-                                        name: 'order-info',
-                                        params: argu
+                                        name: 'task-result',
+                                        query: query
                                     });
                                 }
                             }
@@ -77,33 +91,52 @@ export default {
                 }
             ],
             taskData: [
-                {
-                    task_id: '1000001',
-                    user_name: 'Aresn',
-                    status:Math.floor(Math.random() * 3 + 1)
-                },
-                {
-                    task_id: '1000002',
-                    user_name: 'Lison',
-                    status:Math.floor(Math.random() * 3 + 1)
-                },
-                {
-                    task_id: '1000003',
-                    user_name: 'lili',
-                    status:Math.floor(Math.random() * 3 + 1)
-                },
-                {
-                    task_id: '1000004',
-                    user_name: 'lala',
-                    status:Math.floor(Math.random() * 3 + 1)
-                }
             ]
         };
+    },
+    methods:{
+        getCaseInstanceInfos () {
+            axios.get("/v1/instance/getTaskInstanceInfos",{}).then((res)=>{
+                console.log(res);
+                if(res.data.success){
+                    const that =this;
+                    res.data.message.forEach(function(item){
+                        console.log(item);
+                        that.taskData.push(item);
+                    });
+                }else{
+                    this.$Message.error("获取数据失败")
+                }
+            })
+        },
+        getCaseInstanceInfoById (taskInstanceId) {
+            axios.get("/v1/instance/getTaskInstanceInfoById",{params:{"instanceId":taskInstanceId}}).then((res)=>{
+                console.log(res);
+                if(res.data.success){
+                    const that =this;
+                    res.data.message.forEach(function(item){
+                        console.log(item);
+                        that.taskData.push(item);
+                    });
+                }else{
+                    this.$Message.error("获取数据失败")
+                }
+            })
+        },
     },
     computed: {
         avatorImage () {
             return localStorage.avatorImgPath;
         }
+    },
+    created () {
+        const taskInstanceId= this.$route.query.taskInstanceId;
+        if(taskInstanceId != null){
+            this.getCaseInstanceInfoById(taskInstanceId);
+        }else{taskInstanceId
+            this.getCaseInstanceInfos();
+        }
+
     }
 };
 </script>

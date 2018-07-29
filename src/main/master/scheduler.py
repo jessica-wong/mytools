@@ -1,10 +1,14 @@
 # -*- coding: utf-8 -*-
 from apscheduler.schedulers.blocking import BlockingScheduler
-from src.main.master.service.impl.TaskCenterServiceImpl import TaskCenterService
+from src.main.master.scheduler.jobManage import crontabCaseInstanceJob
 
-def query_task_queue():
-    print (TaskCenterService().sendTask().dict__)
 
-sched = BlockingScheduler()
-sched.add_job(query_task_queue,'interval',seconds=10)
-sched.start()
+def init_scheduler_jobs():
+    print('This job is run every three minutes.')
+
+if __name__=="__main__":
+    print('scheduler server is starting')
+    sched = BlockingScheduler()
+    sched.add_job(crontabCaseInstanceJob, 'interval', seconds=10)
+    sched.start()
+    print('scheduler server is started')

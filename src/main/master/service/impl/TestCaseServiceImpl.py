@@ -9,7 +9,7 @@ from src.main.master.util.logUtil.log import Log
 from src.main.master.entity.DataResult import DataResult
 from src.main.master.dao.TestCaseDao import TestCaseDaoInterface
 from src.main.master.core.AdminDecorator import AdminDecoratorServer
-from src.main.master.dao.WebApiDao import WebApiDaoInterface
+from src.main.master.dao.CaseResultDao import CaseResultDaoInterface
 from src.main.master.util.dbUtil.dbBaseUtil import Connection
 
 #set log
@@ -20,6 +20,7 @@ class TestCaseService(object):
 
     def __init__(self):
         self.testCaseDaoInterface = TestCaseDaoInterface()
+        self.caseResultDaoInterface = CaseResultDaoInterface()
 
     @AdminDecoratorServer.execImplDecorator()
     def addTestCase(self,args,userId):
@@ -529,3 +530,6 @@ class TestCaseService(object):
             return dataResult
         finally:
             db.close()
+
+    def getCaseResultInfosByInstanceId(self,args):
+        return self.caseResultDaoInterface.getCaseResultInfosByInstanceId(args)

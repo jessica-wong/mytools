@@ -4,7 +4,7 @@ import json
 import traceback
 from src.main.master.common.constants import SystemConfig
 from src.main.master.util.logUtil.log import Log
-from src.main.master.entity.DataResult import DataResult
+from src.main.master.util.assertUtil.assertUtil import AssertInstance
 from src.main.master.dao.AssertDao import AssertDaoInterface
 from src.main.master.core.AdminDecorator import AdminDecoratorServer
 
@@ -55,3 +55,17 @@ class AssertService(object):
 
     def deleteAssertByContentId(self,args):
         return self.assertDaoInterface.deleteAssertByContentId(args)
+
+    #0:等于  1：不等于  2：包含  3： 不包含
+    def routeAssert(self,actual,expect,type):
+        type = int(type)
+        if type ==0:
+            return AssertInstance().get_instance().isEqual(actual,expect)
+        elif type ==1:
+            return AssertInstance().get_instance().notEqual(actual,expect)
+        elif type ==2:
+            return AssertInstance().get_instance().isContain(actual,expect)
+        elif type ==3:
+            return AssertInstance().get_instance().notContain(actual,expect)
+        else:
+            return False

@@ -30,3 +30,20 @@ class TestCaseInstanceDaoInterface:
         daoOperate = DbBaseHelper(sql, args)
         return daoOperate.write()
 
+    def getPengdingInstanceInfos(self,args):
+        logger.info(inspect.stack()[0][3])
+        sql = TestInstanceSQLMapper().getSQL(inspect.stack()[0][3])
+        daoOperate =DbBaseHelper(sql,args)
+        return daoOperate.read()
+
+    def updateTestInstanceStatus(self,args):
+        logger.info(inspect.stack()[0][3])
+        sql = TestInstanceSQLMapper().getSQL(inspect.stack()[0][3])
+        daoOperate = DbBaseHelper(sql, args)
+        return daoOperate.write()
+
+    def getTaskInstanceInfos(self,args):
+        logger.info(inspect.stack()[0][3])
+        sql = TestInstanceSQLMapper().getSQL(inspect.stack()[0][3])
+        daoOperate =DbBaseHelper(sql,args)
+        return daoOperate.read()

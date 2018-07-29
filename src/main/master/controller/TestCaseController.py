@@ -40,6 +40,7 @@ class TestCaseHandler(tornado.web.RequestHandler):
                 'getCaseInfosById': lambda: self.getCaseInfosById(),
                 'getCaseList' : lambda : self.getCaseList(),
                 'searchCaseByName' : lambda : self.searchCaseByName(),
+                'getCaseResultInfosByInstanceId': lambda: self.getCaseResultInfosByInstanceId()
                 # lambda alias
             }
             self.write(json.dumps(tasks[APIName]().__dict__,cls=CJsonEncoder))
@@ -112,6 +113,12 @@ class TestCaseHandler(tornado.web.RequestHandler):
         projectId = self.get_argument('projectId')
         applicationId=self.get_argument('applicationId')
         return TestCaseService().getCaseList(applicationId,projectId)
+
+    def getCaseResultInfosByInstanceId(self):
+        instanceId = self.get_argument('instanceId')
+        args={}
+        args["instanceId"]=instanceId
+        return TestCaseService().getCaseResultInfosByInstanceId(args)
 
     def searchCaseByName(self):
         searchValue=self.get_argument("searchValue")

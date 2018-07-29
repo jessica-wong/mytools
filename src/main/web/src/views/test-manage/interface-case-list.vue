@@ -180,8 +180,8 @@ export default {
                 if(res.data.success){
                     this.$Message.success("触发成功");
                     this.$router.push({
-                        path:"/test-manage/interface-te",
-                        query:{projectId:this.$route.query.projectId,applicationId:this.$route.query.applicationId}})
+                        path:"/task/task-trigger",
+                        query:{taskInstanceId:res.data.message}})
                 }else{
                     this.$Message.error("触发失败");
                 }
