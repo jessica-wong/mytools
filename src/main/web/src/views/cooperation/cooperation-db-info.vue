@@ -74,9 +74,9 @@
                                 <div>
                                     <!-- <Table border :columns="logListColumn" :data="loglist" show-header=false></Table> -->
                                     <ul style="list-style:none">
-                                        <li v-for="log in logList" class="margin-bottom-10 margin-right-10">
+                                        <li v-for="log in logList.content" class="margin-bottom-10 margin-right-10">
                                             <Icon type="arrow-right-b"></Icon>
-                                            {{log.content}}
+                                            {{log}}
                                         </li>
                                     </ul>
                                 </div>
@@ -328,7 +328,7 @@ export default {
         },
         cancelPwdShow() {
             this.showPwd = false
-            this.dbPwd = ""
+            this.dbKey = ""
             this.dbPwd = ""
             this.knowKey = false
         },

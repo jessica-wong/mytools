@@ -7,7 +7,7 @@
     <div>
         <Row type="flex" class="height-100">
             <Col span="8">
-                <i-button type="success" @click="addInterface" style="margin-top-10">新建接口</i-button>
+                <!--<i-button type="success" @click="addInterface" style="margin-top-10">新建接口</i-button>-->
                 <i-button type="success" @click="synchronizeWebApi">同步接口</i-button>
             </Col>
             <Col span='8'>
@@ -67,22 +67,22 @@ export default {
                     key: 'Method',
                     filters: [
                             {
-                                label: 'Get',
+                                label: 'get',
                                 value: 1
                             },
                             {
-                                label: 'Post',
+                                label: 'post',
                                 value: 2
                             }
                         ],
-                        filterMultiple: false,
-                        filterMethod (value, row) {
-                            if (value === 1) {
-                                return row.Method == get;
-                            } else if (value === 2) {
-                                return row.Method == post;
-                            }
+                    filterMultiple: false,
+                    filterMethod (value, row) {
+                        if (value === 1) {
+                            return row.Method == get;
+                        } else if (value === 2) {
+                            return row.Method == post;
                         }
+                    },
                 },
                 {
                     title: '接口地址',
@@ -94,7 +94,7 @@ export default {
                 },
                 {
                     title: '接口状态',
-                    key: 'DiffType',
+                    key: 'DiffTypeName',
                     filters: [
                             {
                                 label: '新增接口',
@@ -139,7 +139,7 @@ export default {
                                 },
                                 on: {
                                     click: () => {
-                                        this.tagData.apiId=params.row.Id
+                                        this.tagData.OperationId=params.row.OperationId
                                         this.modalAddTag = true
                                     }
                                 }
@@ -167,7 +167,7 @@ export default {
             tagList:[],
             tagSelected:[],
             tagData:{
-                apiId:"",
+                OperationId:"",
                 tagId:"",
                 projectId:"",
                 applicationId:""
@@ -184,7 +184,15 @@ export default {
                 ).then((res)=>{
                 console.log(res)
                 if(res.data.success){
-                    this.list = res.data.message;
+                    var deffType={
+                        1:"新增",
+                        2:"编辑",
+                        3:"删除",
+                    }
+                    this.list = res.data.message.map(one=>{
+                        one.DiffTypeName = deffType[one.DiffType];
+                        return one;
+                    });
                 }else{
                     this.$Message.error("获取数据失败");
                 }
@@ -262,7 +270,8 @@ export default {
             this.tagData.projectId=this.$route.query.projectId
             this.tagData.applicationId=this.$route.query.applicationId
             this.tagData.tagId = this.handleSelectTag()
-            axios.post("/v1/tag/addWebApiTag",this.tagData
+//            axios.post("/v1/tag/addWebApiTag",this.tagData
+            axios.post("/v1/webapi/setWebApiDiff",this.tagData
                 ).then((res)=>{
                 console.log(res)
                 if(res.data.success){

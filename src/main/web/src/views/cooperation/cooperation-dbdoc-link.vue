@@ -149,6 +149,7 @@ export default {
                 
                 series : [
                     {
+                        // id: 'a',
                         type: 'graph',
                         symbol: 'rect',
                         symbolSize: [160,60],
@@ -186,12 +187,29 @@ export default {
                     }
                 ]
             }
-            myChart.setOption(option)
+            // myChart.setOption(option)
+            // // myChart.on('click', function (params) {
+            // //     // 控制台打印数据的名称
+            // //     console.log(params);
+            // // });
+            // myChart.on('mousedown', function (params) {
+            //     // console.log(params);
+            //     console.log(params.event.offsetX);
+            //     console.log(params.event.offsetY);
+            // })
+
+            // myChart.on('mouseup', function (params) {
+            //     // console.log(params);
+            //     // console.log(params.event.offsetX);
+            //     // console.log(params.event.offsetY);
+            //     params.event.offsetX += 10
+            //     params.event.offsetY += 10
+            // })
         }
     },
-    created() {
-        this.getData()
-    },
+    // created() {
+    //     this.getData()
+    // },
     // watch: {
     //     '$route': function (route) {
     //         let query = route.query
@@ -201,10 +219,16 @@ export default {
     //     },
     // },
 
-    async mounted() {
-        this.getData()
-        this.getLinkGraph()
-    }
+    // async mounted() {
+    //     this.getData()
+    //     this.getLinkGraph()
+    // },
+    beforeRouteEnter(to, from, next) {
+        next(vm => {
+            vm.getData()
+            vm.getLinkGraph()
+        })
+    },
 
 }
 </script>

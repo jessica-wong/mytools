@@ -63,6 +63,7 @@ class WebApiHandler(tornado.web.RequestHandler):
                 'addWebApi' : lambda : self.addWebApi(),
                 'deleteWebApi':lambda :self.deleteWebApi(),
                 'updateWebApi': lambda : self.updateWebApi(),
+                'setWebApiDiff': lambda : self.setWebApiDiff(),
             }
             self.write(json.dumps(tasks[APIName]().__dict__,cls=CJsonEncoder))
         except:
@@ -124,3 +125,6 @@ class WebApiHandler(tornado.web.RequestHandler):
         applicationId = self.get_argument('applicationId')
         projectId = self.get_argument('projectId')
         return WebApiService().getWebApiInfoByPath(applicationId,projectId,Path)
+
+    def setWebApiDiff(self):
+        return WebApiService().setWebApiDiff(json.loads(self.request.body))

@@ -82,3 +82,9 @@ class WebApiDaoInterface:
         sql = WebApiSQLMapper().getSQL(inspect.stack()[0][3])
         daoOperate = DbBaseHelper(sql, args)
         return daoOperate.read()
+
+    def setWebApiDiff(self,args):
+        logger.info(inspect.stack()[0][3])
+        sql = WebApiSQLMapper().getSQL(inspect.stack()[0][3])
+        daoOperate = DbBaseHelper(sql, args)
+        return daoOperate.write()

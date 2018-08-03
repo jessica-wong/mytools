@@ -151,7 +151,7 @@ export default {
                 {
                     // title: "外键/数据关系",
                     title: "外键关系",
-                    width: 280,
+                    width: 290,
                     key: "links",
                     showlink: true
                 },

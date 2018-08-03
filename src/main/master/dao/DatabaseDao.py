@@ -128,6 +128,11 @@ class DatabaseDaoInterface:
         daoOperate = DbBaseHelper(sql, args)
         return daoOperate.write()
 
+    def deleteTableById(self,args):
+        sql = DatabaseSQLMapper().getSQL(inspect.stack()[0][3])
+        daoOperate = DbBaseHelper(sql, args)
+        return daoOperate.write()
+
     def getTableInfoById(self,args):
         sql = DatabaseSQLMapper().getSQL(inspect.stack()[0][3])
         daoOperate = DbBaseHelper(sql, args)
@@ -173,12 +178,27 @@ class DatabaseDaoInterface:
         daoOperate =DbBaseHelper(sql,args,is_execute_many)
         return daoOperate.write()
 
+    def deleteColumnById(self,args):
+        sql = DatabaseSQLMapper().getSQL(inspect.stack()[0][3])
+        daoOperate = DbBaseHelper(sql, args)
+        return daoOperate.write()
+
+    def deleteColumnByTableId(self,args):
+        sql = DatabaseSQLMapper().getSQL(inspect.stack()[0][3])
+        daoOperate = DbBaseHelper(sql, args)
+        return daoOperate.write()
+
     def deleteColumn(self,args):
         sql = DatabaseSQLMapper().getSQL(inspect.stack()[0][3])
         daoOperate = DbBaseHelper(sql, args)
         return daoOperate.write()
 
     def getColumnInfoById(self,args):
+        sql = DatabaseSQLMapper().getSQL(inspect.stack()[0][3])
+        daoOperate = DbBaseHelper(sql, args)
+        return daoOperate.read()
+
+    def getColumnIdByTwoName(self,args):
         sql = DatabaseSQLMapper().getSQL(inspect.stack()[0][3])
         daoOperate = DbBaseHelper(sql, args)
         return daoOperate.read()
@@ -221,6 +241,12 @@ class DatabaseDaoInterface:
 
     def editColumnTypeById(self,args, is_execute_many):
         sql = DatabaseSQLMapper().getSQL(inspect.stack()[0][3])
+        daoOperate = DbBaseHelper(sql, args, is_execute_many)
+        return daoOperate.write()
+
+    def editColumnEnameById(self,args, is_execute_many):
+        sql = DatabaseSQLMapper().getSQL(inspect.stack()[0][3])
+        logger.info(sql)
         daoOperate = DbBaseHelper(sql, args, is_execute_many)
         return daoOperate.write()
 

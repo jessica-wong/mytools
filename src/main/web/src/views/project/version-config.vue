@@ -46,7 +46,17 @@ export default {
             return axios.get("/v1/application/getVersionConfig",{params:{projectId:this.$route.query.projectId,applicationId:this.$route.query.applicationId}}).then((res)=>{
                 console.log(res)
                 if(res.data.success){
-                    this.formItem = res.data.message[0];
+                    if(res.data.message.length==0){
+                        this.formItem = {
+                            git_url:"",
+                            swagger_url:"",
+                            test_url:"",
+                            application_id:"",
+                            project_id:""
+                        }
+                    }else{
+                        this.formItem = res.data.message[0];
+                    }
                 }else{
                     this.$Message.error("获取数据失败")
                 }

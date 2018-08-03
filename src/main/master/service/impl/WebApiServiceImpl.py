@@ -166,3 +166,6 @@ class WebApiService(object):
         args.setdefault("path", path)
         logger.info(args)
         return self.WebApiDaoInterface.getWebApiInfosForCase(args)
+
+    def setWebApiDiff(self,args):
+        return self.WebApiDaoInterface.setWebApiDiff(args)

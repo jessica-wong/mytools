@@ -149,7 +149,7 @@ class DatabaseService(object):
         db_name = (self.getDatabaseInfoById(db_id).getMessage())[0]["name"]
         # 先排序再分组，不然会被隔开
         handle_result = sorted(result.getMessage(), key= lambda x: x["sort"])
-        handle_result = itertools.groupby(handle_result, key= lambda x: x["sort"])
+        handle_result = itertools.groupby(handle_result, key= lambda x: x["tg_id"])
         end_result = []
         index = 0
         for key, group in handle_result:
@@ -205,6 +205,12 @@ class DatabaseService(object):
         return self.DatabaseDaoInterface.deleteTable(args)
 
     @AdminDecoratorServer.execImplDecorator()
+    def deleteTableById(self, ids):
+        args = {}
+        args.setdefault("ids", ids)
+        return self.DatabaseDaoInterface.deleteTableById(args)
+
+    @AdminDecoratorServer.execImplDecorator()
     def getTableInfoById(self, id):
         args = {}
         args.setdefault("id", id)
@@ -241,10 +247,30 @@ class DatabaseService(object):
         return self.DatabaseDaoInterface.deleteColumn(args)
 
     @AdminDecoratorServer.execImplDecorator()
+    def deleteColumnById(self, ids):
+        args = {}
+        args.setdefault("ids", ids)
+        return self.DatabaseDaoInterface.deleteColumnById(args)
+
+    @AdminDecoratorServer.execImplDecorator()
+    def deleteColumnByTableId(self, ids):
+        args = {}
+        args.setdefault("ids", ids)
+        return self.DatabaseDaoInterface.deleteColumnByTableId(args)
+
+    @AdminDecoratorServer.execImplDecorator()
     def getColumnInfoById(self, product_id):
         args = {}
         args.setdefault("id", product_id)
         return self.DatabaseDaoInterface.getColumnInfoById(args)
+
+    @AdminDecoratorServer.execImplDecorator()
+    def getColumnIdByTwoName(self, c_name, t_name, db_id):
+        args = {}
+        args.setdefault("c_name", c_name)
+        args.setdefault("t_name", t_name)
+        args.setdefault("db_id", db_id)
+        return self.DatabaseDaoInterface.getColumnIdByTwoName(args)
 
     @AdminDecoratorServer.execImplDecorator()
     def getColumnListByTableId(self, table_id):
@@ -297,6 +323,10 @@ class DatabaseService(object):
     @AdminDecoratorServer.execImplDecorator()
     def editColumnTypeById(self, args, is_execute_many=False):
         return self.DatabaseDaoInterface.editColumnTypeById(args, is_execute_many)
+
+    @AdminDecoratorServer.execImplDecorator()
+    def editColumnEnameById(self, args, is_execute_many=False):
+        return self.DatabaseDaoInterface.editColumnEnameById(args, is_execute_many)
 
     @AdminDecoratorServer.execImplDecorator()
     def editColumnDiscardById(self, args):
@@ -371,6 +401,7 @@ class DatabaseService(object):
                         columnDict["table_id"] = table_id
                         e_name = j["COLUMN_NAME"]
                         columnDict["e_name"] = e_name
+                        columnDict["pre_name"] = e_name
                         columnDict["type"] = j["COLUMN_TYPE"]
                         remark = j["COLUMN_COMMENT"]
                         columnDict["remark"] = remark
@@ -394,7 +425,6 @@ class DatabaseService(object):
     def synchronizeDatabase(self, args):
         # 后续同步，比较表差和字段差
         dao_db = self.DatabaseDaoInterface
-        dao_db = self.DatabaseDaoInterface
         db_id = args["id"]
         db_info = dao_db.getDatabaseAllInfoById({"id": db_id}).getMessage()
         db_src = {'host': db_info[0]["host"], 'user': db_info[0]["username"], 'passwd': db_info[0]["password"],
@@ -407,11 +437,11 @@ class DatabaseService(object):
         tables_dest = self.getTableList(db_id).getMessage()
         tables_dest_list = [i["e_name"] for i in tables_dest]
         # 获取源数据库和目标数据库的差集，用于增加整表
-        tables_diff = set(tables_src_list) - set(tables_dest_list)
-        tables_diff_list = list(tables_diff)
+        tables_diff_add = set(tables_src_list) - set(tables_dest_list)
+        tables_diff_list = list(tables_diff_add)
         tables_diff_dict = [i for i in tables_src if tables_diff_list.count(i["TABLE_NAME"]) > 0]
         # 获取需要比较表字段的数据表，排除上面差集的数据表
-        tables_compare = set(tables_src_list) - tables_diff
+        tables_compare = set(tables_src_list) - tables_diff_add
         # 增加表
         logTableList = []
         for i in tables_diff_dict:
@@ -469,6 +499,18 @@ class DatabaseService(object):
                     insertColumnList.append(columnDict)
                 dao_db.addColumn(insertColumnList, True)
 
+        # 删除表
+        tables_diff_minus = set(tables_dest_list) - set(tables_src_list)
+        table_del = []
+        log_del_table_list = []
+        for l in tables_diff_minus:
+            table_id = [i["id"] for i in tables_dest if i["e_name"] == l]
+            table_del.extend(table_id)
+            log_del_table_list.append(l)
+        if table_del != []:
+            self.deleteColumnByTableId(table_del)
+            self.deleteTableById(table_del)
+
         # 比较表，根据缺少的字段，增加字段
         logColumnList = []
         for i in tables_compare:
@@ -485,9 +527,11 @@ class DatabaseService(object):
             columns_src_list = [i["COLUMN_NAME"] for i in columns_src]
             columns_dest = self.getColumnListByTableId(table_id).getMessage()
             columns_dest_list = [i["e_name"] for i in columns_dest]
-            columns_diff = set(columns_src_list) - set(columns_dest_list)
+            columns_diff_add = set(columns_src_list) - set(columns_dest_list)
+            # 获取废弃字段列表
+            column_discarded = [i[2:-2] for i in columns_src_list if i.startswith("~~") and i.endswith("~~")]
 
-            for j in columns_diff:
+            for j in columns_diff_add:
                 args = {}
                 args.setdefault("schema_name", db_schema)
                 args.setdefault("table_name", db_table)
@@ -495,23 +539,46 @@ class DatabaseService(object):
                 column_info = dao_db.getSynchronizeColumn(args, **db_src).getMessage()
                 columnDict = {}
                 columnDict["table_id"] = table_id
-                e_name = j["COLUMN_NAME"]
+                e_name = column_info[0]["COLUMN_NAME"]
                 columnDict["e_name"] = e_name
-                columnDict["type"] = j["COLUMN_TYPE"]
-                remark = j["COLUMN_COMMENT"]
+                # 处理~~xxx~~的字段
+                pre_name = e_name[2:-2] if e_name.startswith("~~") and e_name.endswith("~~") else e_name
+                columnDict["type"] = column_info[0]["COLUMN_TYPE"]
+                remark = column_info[0]["COLUMN_COMMENT"]
                 columnDict["remark"] = remark
                 if e_name[0:2] == "~~":
                     columnDict["discarded"] = 1
                 else:
                     columnDict["discarded"] = 0
-                logColumnName = "{}.{}".format(db_table, columnDict["e_name"])
-                logColumnList.append(logColumnName)
-                dao_db.addColumn(columnDict)
+                pre_col_info = self.getColumnIdByTwoName(pre_name, i, db_id).getMessage()
+                if pre_col_info == []:
+                    logColumnName = "{}.{}".format(db_table, columnDict["e_name"])
+                    logColumnList.append(logColumnName)
+                    dao_db.addColumn(columnDict)
+
+            # 删除字段
+            columns_diff_minus = set(columns_dest_list) - set(columns_src_list)
+            column_del = []
+            log_del_col_list = []
+            for k in columns_diff_minus:
+                if k not in column_discarded:
+                    col_id = [i["id"] for i in columns_dest if i["e_name"] == k]
+                    column_del.extend(col_id)
+                    log_del_col_list.append("{}.{}".format(i, k))
+            if column_del != []:
+                self.deleteColumnById(column_del)
 
         dao_db.getDatabaseAllInfoById({"id": db_id})
 
         # 增加log信息
-        return self.addDBLog(db_id, logTableList + logColumnList)
+        if log_del_table_list != [] or log_del_col_list != []:
+            self.addDBLog(db_id, log_del_table_list + log_del_col_list, type=2)
+        if logTableList != [] or logColumnList != []:
+            self.addDBLog(db_id, logTableList + logColumnList)
+
+        d = DataResult()
+        d.setSuccess(True)
+        return d
 
     @AdminDecoratorServer.execImplDecorator()
     def initSynchronizeTable(self, schema_name, table_name):
@@ -588,6 +655,8 @@ class DatabaseService(object):
             concat_content = "添加了{}".format("、".join(content))
         elif type == 1:
             concat_content = "更新了{}".format("、".join(content))
+        elif type == 2:
+            concat_content = "删除了{}".format("、".join(content))
 
         args.setdefault("content", concat_content)
         return self.DatabaseDaoInterface.addDBLog(args)
@@ -596,7 +665,17 @@ class DatabaseService(object):
     def getDBLogList(self, db_id):
         args = {}
         args.setdefault("db_id", db_id)
-        return self.DatabaseDaoInterface.getDBLogList(args)
+        result = self.DatabaseDaoInterface.getDBLogList(args)
+        message = result.getMessage()
+        end_content = []
+        for i in message:
+            username = i["username"]
+            create_time = i["gmt_create"]
+            content = i["content"]
+            show_name = username if username is not None else ""
+            end_content.append("{}在 {} 同步：{}".format(show_name, create_time, content))
+        result.setMessage({"content": end_content})
+        return result
 
     @AdminDecoratorServer.execImplDecorator()
     def addColumnLink(self, args):
@@ -696,16 +775,19 @@ class DatabaseService(object):
         cs_args.setdefault("schema_name", db_src["db"])
         cs_args.setdefault("table_name", table_e_name)
         column_info_src = self.DatabaseDaoInterface.getSynchronizeTable(cs_args, **db_src).getMessage()
-        column_info = [{"name": i["e_name"], "type": i["type"], "remark": i["remark"], "id": i["id"]} for i in
+        column_info = [{"name": i["e_name"], "type": i["type"], "remark": i["remark"], "id": i["id"],
+                        "pre_name": i["e_name"][2:-2] if i["e_name"].startswith("~~") and i["e_name"].endswith("~~") else i["e_name"]} for i in
                        column_info]
-        column_info_src = [{"name": i["COLUMN_NAME"], "type": i["COLUMN_TYPE"], "remark": i["COLUMN_COMMENT"]}
+        column_info_src = [{"name": i["COLUMN_NAME"], "type": i["COLUMN_TYPE"], "remark": i["COLUMN_COMMENT"],
+                            "pre_name": i["COLUMN_NAME"][2:-2] if i["COLUMN_NAME"].startswith("~~") and i["COLUMN_NAME"].endswith("~~") else i["COLUMN_NAME"]}
                            for i in column_info_src]
-        column_info = sorted(column_info, key=lambda x: x["name"])
-        column_info_src = sorted(column_info_src, key=lambda x: x["name"])
+        column_info = sorted(column_info, key=lambda x: x["pre_name"])
+        column_info_src = sorted(column_info_src, key=lambda x: x["pre_name"])
         flag_column = False
         column_content = []
         update_column_type = []
         update_column_remark = []
+        update_column_ename = []
         if len(column_info) == len(column_info_src):
             flag_column = True
         else:
@@ -713,10 +795,10 @@ class DatabaseService(object):
             result.setMessage("当前表的字段数和源库中不一致，请先同步表信息")
         if flag_column:
             for x, y in zip(column_info, column_info_src):
-                one_flag = False
-                if x["name"] == y["name"]:
-                    one_flag = True
-                if one_flag:
+                # one_flag = False
+                # if x["name"] == y["name"]:
+                #     one_flag = True
+                if x["pre_name"] == y["pre_name"]:
                     if x["type"] != y["type"]:
                         args_type = {}
                         args_type.setdefault("id", x["id"])
@@ -733,9 +815,20 @@ class DatabaseService(object):
                         content = "字段{}.{}的【备注】从 [{}] 变成 [{}]".format(table_e_name,
                                                                       x["name"], x["remark"], y["remark"])
                         column_content.append(content)
+                    # 处理废弃字段的字段变更
+                    if x["name"] != y["name"]:
+                        args_ename = {}
+                        args_ename.setdefault("id", x["id"])
+                        args_ename.setdefault("val", y["name"])
+                        update_column_ename.append(args_ename)
+                        content = "字段{}.{}的【英文名】从 [{}] 变成 [{}]".format(table_e_name,
+                                                                      x["name"], x["name"], y["name"])
+                        column_content.append(content)
+
         if flag_column:
-            self.editColumnTypeById(update_column_type, True)
-            self.editColumnRemarkById(update_column_remark, True)
+            if update_column_type != []: self.editColumnTypeById(update_column_type, True)
+            if update_column_remark != []: self.editColumnRemarkById(update_column_remark, True)
+            if update_column_ename != []: self.editColumnEnameById(update_column_ename, True)
             if len(column_content) > 0:
                 self.addDBLog(db_id, column_content, user_id, 1)
 
@@ -813,29 +906,30 @@ class DatabaseService(object):
             table_list.extend(tables)
 
             datus = []
-            for level in range(1,10):
-                if tables != []:
-                    table_info = self.getLinkTable(tables, level)
-                    logger.info(table_info)
-                    tables = [t["dt.id"] for t in table_info]
-                    table_list.extend(tables)
+            level = 0
+            while tables != []:
+                table_info = self.getViewTableInfoByGroup(tables, level).getMessage()
 
-                    logger.info(tables)
+                table_group = itertools.groupby(table_info, key=lambda x: x["name"])
+                for key, group in table_group:
+                    data = {}
+                    group = list(group)
+                    db = group[0]["db_name"]
+                    link_type = group[0]["link_type"]
+                    data.setdefault("t_name", key)
+                    data.setdefault("db_name", db)
+                    data.setdefault("link_type", link_type)
+                    cols = [g['e_name'] for g in group]
+                    data.setdefault('info', cols)
+                    datus.append(data)
 
-                    table_group = itertools.groupby(table_info, key=lambda x: x["name"])
-                    for key, group in table_group:
-                        data = {}
-                        group = list(group)
-                        db = group[0]["db_name"]
-                        link_type = group[0]["link_type"]
-                        data.setdefault("t_name", key)
-                        data.setdefault("db_name", db)
-                        data.setdefault("link_type", link_type)
-                        cols = [g['e_name'] for g in group]
-                        data.setdefault('info', cols)
-                        datus.append(data)
+                tables = self.getLinkTable(tables)
+                tables = [t["link_table_id"] for t in tables]
+                table_list.extend(tables)
 
-            link_info = self.getViewLinksByGroup(table_list)
+                level += 1
+
+            link_info = self.getViewLinksByGroup(set(table_list))
             infos = link_info.getMessage()
             links = []
             for i in infos:
@@ -853,9 +947,9 @@ class DatabaseService(object):
         result.setSuccess(True)
         return result
 
-    def getLinkTable(self, table_id, link_level):
+    def getLinkTable(self, table_id):
         if table_id != []:
-            return self.getViewTableInfoByGroup(table_id, link_level).getMessage()
+            return self.getViewLinksByGroup(table_id).getMessage()
         else:
             return []
 
@@ -930,8 +1024,8 @@ class DatabaseService(object):
         return self.DatabaseDaoInterface.getViewTableByGroup(args)
 
     def getViewTableInfoByGroup(self, table_id, link_level):
-        if link_level > 3:
-            link_level = 3
+        if link_level > 2:
+            link_level = 2
         args = {}
         args.setdefault("table_ids", table_id)
         args.setdefault("link_type", link_level)

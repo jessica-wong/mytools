@@ -54,8 +54,7 @@
 # 	password varchar(128) not null comment '连接密码',
 # 	schema_name varchar(32) not null comment '实例名',
 # 	business_unit tinyint default '0' not null comment '关联事业线Id',
-# 	product_unit tinyint default '0' not null comment '关联产品Id',
-# 	match_rule varchar(255) null comment '自动生成关联关系规则，用,隔开'
+# 	product_unit tinyint default '0' not null comment '关联产品Id'
 # ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8
 # comment '数据库表'
 # ;
@@ -140,7 +139,7 @@ class DatabaseSQLMapper:
 
         editDatabaseSQL = """
         update db_manage set name=%(name)s,host=%(host)s,port=%(port)s,username=%(username)s,schema_name=%(schema_name)s,
-        business_unit=%(business_unit)s,product_unit=%(product_unit)s,match_rule=%(match_rule)s where id=%(id)s;
+        business_unit=%(business_unit)s,product_unit=%(product_unit)s where id=%(id)s;
         """
 
         editDatabasePwdByIdSQL = """
@@ -184,7 +183,7 @@ class DatabaseSQLMapper:
         getTableGroupRelationListSQL = """
         select tgr.*,tg.*,t.e_name,t.c_name,tg.id 'tg_id' from table_group_relation tgr join table_group tg 
          on tgr.group_id = tg.id join db_table t on t.id = tgr.table_id
-         where tg.db_id = %(db_id)s order by tg.sort,t.id;
+         where tg.db_id = %(db_id)s order by tg.sort,tg.id,t.id;
         """
 
         updateTableGroupRelationSQL = """
@@ -208,8 +207,8 @@ class DatabaseSQLMapper:
         values (%(db_id)s,%(c_name)s,%(e_name)s,%(remark)s,%(discarded)s,now(),now());
         """
 
-        deleteTableSQL = """
-        delete from db_table where id = %(id)s;
+        deleteTableByIdSQL = """
+        delete from db_table where id in %(ids)s;
         """
 
         getTableInfoByIdSQL = """
@@ -253,12 +252,22 @@ class DatabaseSQLMapper:
         values (%(table_id)s,%(e_name)s,%(type)s,%(remark)s,%(discarded)s,now(),now());
         """
 
-        deleteColumnSQL = """
-        delete from db_column where id = %(id)s;
+        deleteColumnByIdSQL = """
+        delete from db_column where id in %(ids)s;
+        """
+
+        deleteColumnByTableIdSQL = """
+        delete from db_column where table_id in %(ids)s;
         """
 
         getColumnInfoByIdSQL = """
         select * from db_column where id = %(id)s;
+        """
+
+        getColumnIdByTwoNameSQL = """
+        select dc.id from db_column dc 
+        join db_table dt on dt.id = dc.table_id
+        where dc.e_name=%(c_name)s and dt.e_name=%(t_name)s and dt.db_id=%(db_id)s;
         """
 
         getColumnInfoByEnameSQL = """
@@ -310,6 +319,10 @@ class DatabaseSQLMapper:
 
         editColumnTypeByIdSQL = """
         update db_column set type=%(val)s, gmt_modify=now() where id=%(id)s;
+        """
+
+        editColumnEnameByIdSQL = """
+        update db_column set e_name=%(val)s,discarded=1,gmt_modify=now() where id=%(id)s;
         """
 
         editColumnDiscardByIdSQL = """
@@ -396,7 +409,7 @@ class DatabaseSQLMapper:
 
         # todo 待改
         getDBLogListSQL = """
-        select concat(if(username is NULL,"自动",username),"在",dl.gmt_create,content) as content from db_log dl
+        select username,dl.gmt_create,content from db_log dl 
           left join user u on u.id = dl.user_id
           where db_id = %(db_id)s order by dl.gmt_create desc;
         """
@@ -479,7 +492,7 @@ class DatabaseSQLMapper:
         """
 
         getViewTableByGroupSQL = """
-        select table_id from table_group_relation tgr where tgr.group_id = %(group_id)s;
+        select DISTINCT(table_id) from table_group_relation tgr where tgr.group_id = %(group_id)s;
         """
 
         getViewTableInfoByGroupSQL = """
@@ -526,7 +539,7 @@ class DatabaseSQLMapper:
         self.data.setdefault("deleteTableGroupRelationByDB", deleteTableGroupRelationByDBSQL)
 
         self.data.setdefault("addTable", addTableSQL)
-        self.data.setdefault("deleteTable", deleteTableSQL)
+        self.data.setdefault("deleteTableById", deleteTableByIdSQL)
         self.data.setdefault("getTableInfoById", getTableInfoByIdSQL)
         self.data.setdefault("getTableInfoByName", getTableInfoByNameSQL)
         self.data.setdefault("getTableList", getTableListSQL)
@@ -537,8 +550,10 @@ class DatabaseSQLMapper:
         self.data.setdefault("discardTableByName", discardTableByNameSQL)
 
         self.data.setdefault("addColumn", addColumnSQL)
-        self.data.setdefault("deleteColumn", deleteColumnSQL)
+        self.data.setdefault("deleteColumnById", deleteColumnByIdSQL)
+        self.data.setdefault("deleteColumnByTableId", deleteColumnByTableIdSQL)
         self.data.setdefault("getColumnInfoById", getColumnInfoByIdSQL)
+        self.data.setdefault("getColumnIdByTwoName", getColumnIdByTwoNameSQL)
         self.data.setdefault("getColumnInfoByEname", getColumnInfoByEnameSQL)
         self.data.setdefault("getIdColumnInfoByTableName", getIdColumnInfoByTableNameSQL)
         self.data.setdefault("getIdColumnListByTableName", getIdColumnListByTableNameSQL)
@@ -547,6 +562,7 @@ class DatabaseSQLMapper:
         self.data.setdefault("editColumn", editColumnSQL)
         self.data.setdefault("editColumnRemarkById", editColumnRemarkByIdSQL)
         self.data.setdefault("editColumnTypeById", editColumnTypeByIdSQL)
+        self.data.setdefault("editColumnEnameById", editColumnEnameByIdSQL)
         self.data.setdefault("editColumnDiscardById", editColumnDiscardByIdSQL)
         self.data.setdefault("editColumnHideById", editColumnHideByIdSQL)
         self.data.setdefault("editColumnUnlinkById", editColumnUnlinkByIdSQL)

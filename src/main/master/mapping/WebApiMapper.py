@@ -55,6 +55,10 @@ class WebApiSQLMapper:
         where webapi.ApplicationId = %(applicationId)s and webapi.ProjectId=%(projectId)s 
         and webapi.Path=%(Path)s 
         """
+        setWebApiDiffSQL="""
+        insert into webapi_diff (ProjectId,ApplicationId,OperationId,DiffType) values (%(projectId)s,%(applicationId)s,%(OperationId)s,%(tagId)s)
+        """
+
         #SET SQL FOR DAO
         self.data.setdefault("addWebApi",addWebApiSQL)
         self.data.setdefault("deleteWebApi",deleteWebApiSQL)
@@ -68,3 +72,4 @@ class WebApiSQLMapper:
         self.data.setdefault("getWebApiInfoByPath", getWebApiInfoByPathSQL)
         self.data.setdefault("getWebApiPathForProject", getWebApiPathForProjectSQL)
         self.data.setdefault("getWebApiInfosForCase", getWebApiInfosForCaseSQL)
+        self.data.setdefault("setWebApiDiff", setWebApiDiffSQL)
